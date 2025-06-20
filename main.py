@@ -4,6 +4,7 @@ import uuid
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 import models
@@ -12,6 +13,14 @@ def log_working_dir():
     print(f"[Startup] Working directory: {os.getcwd()}")
 
 app = FastAPI(on_startup=[log_working_dir])
+
+# CORS (por si accedes desde otros dispositivos o apps externas)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Crear tablas si no existen
 models.Base.metadata.create_all(bind=engine)
@@ -96,8 +105,8 @@ async def get_audio(filename: str):
 
 @app.get("/")
 async def serve_index():
-    return FileResponse("static/index.html")
+    return FileResponse("static/index.html", media_type="text/html")
 
 @app.get("/student")
 async def serve_student():
-    return FileResponse("static/student.html")
+    return FileResponse("static/student.html", media_type="text/html")
