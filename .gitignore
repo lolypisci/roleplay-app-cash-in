@@ -1,39 +1,25 @@
-# ================= Ignorar base de datos local =================
-# Archivo SQLite local
+# Base de datos local y uploads
 roleplay.db
-
-# Carpeta de uploads con audios locales
 uploads/
 
-# ================= Ignorar entornos y caches =================
-# Entorno virtual
+# Entornos y caches
 venv/
 .env
-
-# Pycache
 __pycache__/
 *.py[cod]
-*$py.class
 
-# Logs
-*.log
-
-# Archivos de IDE o sistema
+# IDE y sistema
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
 
-# Archivos de configuración local
+# Config local/secretos
 config_local.json
+credentials.json
+*.key *.pem
 
-# ================= Ignorar build/despliegue local =================
-# Si usas PyInstaller o similares, ignorar carpetas de dist/build
+# Logs y builds
+*.log
 dist/
 build/
-*.spec
-
-# ================= Otros =================
-# Cualquier archivo con credenciales locales
-secret*.txt
-credentials.json

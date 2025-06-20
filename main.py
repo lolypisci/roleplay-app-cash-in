@@ -16,7 +16,7 @@ app = FastAPI(on_startup=[log_working_dir])
 # Crear tablas si no existen
 models.Base.metadata.create_all(bind=engine)
 
-# Montar carpeta estática
+# Montar static/
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 def get_db():
@@ -35,15 +35,13 @@ async def upload_roleplay(
     db: Session = Depends(get_db)
 ):
     if audio.content_type.split("/")[0] != "audio":
-        raise HTTPException(status_code=400, detail="Debe subir un archivo de audio")
+        raise HTTPException(status_code=400, detail="Must upload audio")
     ext = os.path.splitext(audio.filename)[1] or ".wav"
     filename = f"{uuid.uuid4().hex}{ext}"
-    upload_dir = "uploads"
-    os.makedirs(upload_dir, exist_ok=True)
-    file_path = os.path.join(upload_dir, filename)
-    with open(file_path, "wb") as f:
-        content = await audio.read()
-        f.write(content)
+    os.makedirs("uploads", exist_ok=True)
+    path = os.path.join("uploads", filename)
+    with open(path, "wb") as f:
+        f.write(await audio.read())
     rp = models.Roleplay(
         comprador=comprador,
         vendedor=vendedor,
@@ -53,18 +51,18 @@ async def upload_roleplay(
     db.add(rp)
     db.commit()
     db.refresh(rp)
-    return JSONResponse({"status": "ok", "id": rp.id})
+    return JSONResponse({"status":"ok","id":rp.id})
 
 @app.get("/roleplays")
-def list_roleplays(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    items = db.query(models.Roleplay).offset(skip).limit(limit).all()
-    result = []
+def list_roleplays(db: Session = Depends(get_db)):
+    items = db.query(models.Roleplay).all()
+    out = []
     for r in items:
         try:
             productos = json.loads(r.productos)
         except:
             productos = []
-        result.append({
+        out.append({
             "id": r.id,
             "comprador": r.comprador,
             "vendedor": r.vendedor,
@@ -72,34 +70,25 @@ def list_roleplays(skip: int = 0, limit: int = 100, db: Session = Depends(get_db
             "audio_url": f"/audio/{r.audio_filename}",
             "timestamp": r.timestamp.isoformat()
         })
-    return result
+    return out
 
 @app.get("/audio/{filename}")
 async def get_audio(filename: str):
-    file_path = os.path.join("uploads", filename)
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404)
+    path = os.path.join("uploads", filename)
+    if not os.path.isfile(path):
+        raise HTTPException(404)
     ext = os.path.splitext(filename)[1].lower()
-    if ext == ".wav":
-        media_type = "audio/wav"
-    elif ext == ".webm":
-        media_type = "audio/webm"
-    elif ext == ".mp3":
-        media_type = "audio/mpeg"
-    else:
-        media_type = "application/octet-stream"
-    return FileResponse(file_path, media_type=media_type)
+    media = {
+        ".wav":"audio/wav",
+        ".webm":"audio/webm",
+        ".mp3":"audio/mpeg"
+    }.get(ext, "application/octet-stream")
+    return FileResponse(path, media_type=media)
 
 @app.get("/")
 async def serve_index():
-    file_path = os.path.join("static", "index.html")
-    if not os.path.isfile(file_path):
-        raise HTTPException(status_code=404, detail="index.html not found")
-    return FileResponse(file_path)
+    return FileResponse("static/index.html")
 
 @app.get("/student")
 async def serve_student():
-    file_path = os.path.join("static", "student.html")
-    if not os.path.isfile(file_path):
-        raise HTTPException(status_code=404, detail="student.html not found")
-    return FileResponse(file_path)
+    return FileResponse("static/student.html")

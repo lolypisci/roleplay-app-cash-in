@@ -8,10 +8,32 @@ import requests
 import io
 import json
 
-# ==================== CONFIGURACIÓN ====================
-# URL pública de tu backend FastAPI (sin slash final).
-BACKEND_URL = input("Enter backend URL (e.g. https://xxxxxx.ngrok-free.app): ").strip()
-# ========================================================
+# ==================== CONFIG AUTOMÁTICA ====================
+# URL raw de tu config.json en GitHub (sin token en la URL):
+CONFIG_URL = "https://raw.githubusercontent.com/lolypisci/roleplay-app-cash-in/main/config.json"
+
+def obtener_backend_url():
+    try:
+        resp = requests.get(CONFIG_URL, timeout=5)
+        if resp.status_code == 200:
+            data = resp.json()
+            url = data.get("backend_url", "").strip()
+            if url:
+                print(f"[Config] Usando backend URL desde config.json: {url}")
+                return url
+            else:
+                print("[Config] El campo 'backend_url' está vacío en config.json.")
+        else:
+            print(f"[Config] No se pudo obtener config.json (status {resp.status_code}).")
+    except Exception as e:
+        print(f"[Config] Error al descargar config.json: {e}")
+    # Fallback: pedir al usuario
+    url_input = input("Enter backend URL (e.g. https://xxxx.ngrok-free.app): ").strip()
+    return url_input
+
+# Obtén BACKEND_URL automáticamente:
+BACKEND_URL = obtener_backend_url()
+# ===========================================================
 
 # Parámetros de grabación
 SAMPLE_RATE = 44100  # Frecuencia de muestreo
@@ -54,6 +76,7 @@ class Recorder:
             return None
         data = np.concatenate(self.frames, axis=0)
         return data
+
 
 def encode_wav(data: np.ndarray, samplerate: int) -> bytes:
     """Codifica un array numpy mono (float32) a WAV 16-bit PCM y retorna bytes."""
