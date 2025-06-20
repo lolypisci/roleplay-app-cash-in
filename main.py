@@ -16,7 +16,7 @@ app = FastAPI(on_startup=[log_working_dir])
 # Crear tablas si no existen
 models.Base.metadata.create_all(bind=engine)
 
-# Montar static/
+# Montar carpeta static/
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 def get_db():
@@ -30,28 +30,32 @@ def get_db():
 async def upload_roleplay(
     comprador: str = Form(...),
     vendedor: str = Form(...),
-    productos_json: str = Form(...),
+    productos: str = Form(...),
+    costes: str = Form(...),
     audio: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
     if audio.content_type.split("/")[0] != "audio":
         raise HTTPException(status_code=400, detail="Must upload audio")
+
     ext = os.path.splitext(audio.filename)[1] or ".wav"
     filename = f"{uuid.uuid4().hex}{ext}"
     os.makedirs("uploads", exist_ok=True)
     path = os.path.join("uploads", filename)
     with open(path, "wb") as f:
         f.write(await audio.read())
+
     rp = models.Roleplay(
         comprador=comprador,
         vendedor=vendedor,
-        productos=productos_json,
+        productos=productos,
+        costes=costes,
         audio_filename=filename
     )
     db.add(rp)
     db.commit()
     db.refresh(rp)
-    return JSONResponse({"status":"ok","id":rp.id})
+    return JSONResponse({"status": "ok", "id": rp.id})
 
 @app.get("/roleplays")
 def list_roleplays(db: Session = Depends(get_db)):
@@ -62,11 +66,16 @@ def list_roleplays(db: Session = Depends(get_db)):
             productos = json.loads(r.productos)
         except:
             productos = []
+        try:
+            costes = json.loads(r.costes)
+        except:
+            costes = []
         out.append({
             "id": r.id,
             "comprador": r.comprador,
             "vendedor": r.vendedor,
             "productos": productos,
+            "costes": costes,
             "audio_url": f"/audio/{r.audio_filename}",
             "timestamp": r.timestamp.isoformat()
         })
@@ -79,9 +88,9 @@ async def get_audio(filename: str):
         raise HTTPException(404)
     ext = os.path.splitext(filename)[1].lower()
     media = {
-        ".wav":"audio/wav",
-        ".webm":"audio/webm",
-        ".mp3":"audio/mpeg"
+        ".wav": "audio/wav",
+        ".webm": "audio/webm",
+        ".mp3": "audio/mpeg"
     }.get(ext, "application/octet-stream")
     return FileResponse(path, media_type=media)
 

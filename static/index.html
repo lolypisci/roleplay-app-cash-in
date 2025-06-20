@@ -1,299 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Roleplay Archive: Cash In</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Teacher View - Roleplay Archive</title>
 </head>
 <body>
-  <h1>Roleplay Archive: Cash In</h1>
 
-  <!-- Recording section -->
-  <div id="recordSection">
-    <label>Buyer Name: <input id="comprador" type="text" placeholder="e.g. John"/></label><br/>
-    <label>Seller Name: <input id="vendedor" type="text" placeholder="e.g. Mary"/></label><br/>
-    <button id="startBtn">Start Recording</button>
-    <button id="stopBtn" disabled>Stop Recording</button>
-    <p id="status"></p>
-    <div id="postForm" style="display:none;">
-      <h3>Purchase Details</h3>
-      <textarea id="productos" placeholder="e.g. apple:1.50, bread:2.00"></textarea><br/>
-      <button id="submitBtn">Submit Roleplay</button>
-    </div>
-    <hr>
-  </div>
+<h1>Saved Sessions</h1>
 
-  <!-- Saved sessions with filter/group options -->
-  <div id="listSection">
-    <h2>Saved Sessions</h2>
-    <button id="loadBtn">Load Sessions</button>
-    <div id="controls" style="margin-top:10px; display:none;">
-      <label>View Mode:
-        <select id="viewModeSelect">
-          <option value="all">Show All</option>
-          <option value="filter">Filter by Student</option>
-          <option value="group">Group by Student</option>
-        </select>
-      </label>
-      <label id="labelAlumno" style="margin-left:20px; display:none;">
-        Student:
-        <select id="alumnoSelect"></select>
-      </label>
-    </div>
-    <div id="listContainer" style="margin-top:10px;"></div>
-  </div>
+<table border="1" id="roleplays-table">
+  <thead>
+    <tr>
+      <th>Buyer</th>
+      <th>Seller</th>
+      <th>Purchased Items</th>
+      <th>Costs</th>
+      <th>Audio</th>
+      <th>Timestamp</th>
+    </tr>
+  </thead>
+  <tbody>
+  </tbody>
+</table>
 
-  <script>
-    // Variables for WAV recording
-    let audioContext;
-    let processor;
-    let inputNode;
-    let recording = false;
-    let recordedBuffers = [];
-    let sampleRate;
+<script>
+function loadRoleplays() {
+  fetch('/roleplays')
+    .then(response => response.json())
+    .then(data => {
+      const tbody = document.querySelector("#roleplays-table tbody");
+      tbody.innerHTML = "";
 
-    // DOM elements
-    const startBtn = document.getElementById("startBtn");
-    const stopBtn = document.getElementById("stopBtn");
-    const statusP = document.getElementById("status");
-    const postFormDiv = document.getElementById("postForm");
-    const submitBtn = document.getElementById("submitBtn");
+      data.forEach(r => {
+        const productosHTML = r.productos.join(", ");
+        const costesHTML = r.costes.map(c => "€" + c.toFixed(2)).join(", ");
 
-    // Start WAV recording
-    startBtn.onclick = async () => {
-      const buyer = document.getElementById("comprador").value.trim();
-      const seller = document.getElementById("vendedor").value.trim();
-      if (!buyer || !seller) {
-        alert("Please enter buyer and seller names before recording.");
-        return;
-      }
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        sampleRate = audioContext.sampleRate;
-        inputNode = audioContext.createMediaStreamSource(stream);
-        processor = audioContext.createScriptProcessor(4096, 1, 1);
-        recordedBuffers = [];
-        recording = true;
-        processor.onaudioprocess = e => {
-          if (!recording) return;
-          const channelData = e.inputBuffer.getChannelData(0);
-          recordedBuffers.push(new Float32Array(channelData));
-        };
-        inputNode.connect(processor);
-        processor.connect(audioContext.destination);
-        statusP.textContent = "Recording...";
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
-      } catch (err) {
-        console.error(err);
-        alert("Error accessing microphone.");
-      }
-    };
-
-    // Stop recording
-    stopBtn.onclick = () => {
-      if (recording) {
-        recording = false;
-        if (processor) processor.disconnect();
-        if (inputNode) inputNode.disconnect();
-        statusP.textContent = "Recording stopped.";
-        postFormDiv.style.display = "block";
-        startBtn.disabled = false;
-        stopBtn.disabled = true;
-      }
-    };
-
-    // Encode WAV
-    function encodeWAV(buffers, sampleRate) {
-      let totalLength = buffers.reduce((sum, buf) => sum + buf.length, 0);
-      let buffer = new ArrayBuffer(44 + totalLength * 2);
-      let view = new DataView(buffer);
-      function writeString(view, offset, string) {
-        for (let i = 0; i < string.length; i++) {
-          view.setUint8(offset + i, string.charCodeAt(i));
-        }
-      }
-      writeString(view, 0, 'RIFF');
-      view.setUint32(4, 36 + totalLength * 2, true);
-      writeString(view, 8, 'WAVE');
-      writeString(view, 12, 'fmt ');
-      view.setUint32(16, 16, true);
-      view.setUint16(20, 1, true);
-      view.setUint16(22, 1, true);
-      view.setUint32(24, sampleRate, true);
-      view.setUint32(28, sampleRate * 2, true);
-      view.setUint16(32, 2, true);
-      view.setUint16(34, 16, true);
-      writeString(view, 36, 'data');
-      view.setUint32(40, totalLength * 2, true);
-      let offset = 44;
-      buffers.forEach(buf => {
-        for (let i = 0; i < buf.length; i++) {
-          let s = Math.max(-1, Math.min(1, buf[i]));
-          view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-          offset += 2;
-        }
-      });
-      return new Blob([view], { type: 'audio/wav' });
-    }
-
-    // Submit recording and data
-    submitBtn.onclick = async () => {
-      const buyer = document.getElementById("comprador").value.trim();
-      const seller = document.getElementById("vendedor").value.trim();
-      const productsText = document.getElementById("productos").value.trim();
-      if (!productsText) {
-        alert("Please enter products and prices.");
-        return;
-      }
-      const wavBlob = encodeWAV(recordedBuffers, sampleRate);
-      const formData = new FormData();
-      formData.append("comprador", buyer);
-      formData.append("vendedor", seller);
-      const productsArr = productsText.split(",").map(item => {
-        const [name, price] = item.split(":").map(s => s.trim());
-        return { nombre: name, precio: parseFloat(price) };
-      });
-      formData.append("productos_json", JSON.stringify(productsArr));
-      formData.append("audio", wavBlob, "roleplay.wav");
-      try {
-        const resp = await fetch("/upload", {
-          method: "POST",
-          body: formData
-        });
-        if (!resp.ok) {
-          const err = await resp.json();
-          alert("Upload error: " + JSON.stringify(err));
-        } else {
-          alert("Roleplay uploaded successfully.");
-          postFormDiv.style.display = "none";
-          statusP.textContent = "";
-          recordedBuffers = [];
-          document.getElementById("productos").value = "";
-        }
-      } catch (err) {
-        console.error(err);
-        alert("Network error during upload.");
-      }
-    };
-
-    // List with filter and group
-    const loadBtn = document.getElementById("loadBtn");
-    const controlsDiv = document.getElementById("controls");
-    const viewModeSelect = document.getElementById("viewModeSelect");
-    const labelAlumno = document.getElementById("labelAlumno");
-    const alumnoSelect = document.getElementById("alumnoSelect");
-    const listContainer = document.getElementById("listContainer");
-
-    let sessionsData = [];
-    let uniqueNames = [];
-
-    loadBtn.onclick = async () => {
-      listContainer.innerHTML = "Loading...";
-      try {
-        const resp = await fetch("/roleplays");
-        if (!resp.ok) {
-          listContainer.innerHTML = "Error loading sessions.";
-          return;
-        }
-        const data = await resp.json();
-        sessionsData = Array.isArray(data) ? data : [];
-        const namesSet = new Set();
-        sessionsData.forEach(r => {
-          if (r.comprador) namesSet.add(r.comprador);
-          if (r.vendedor) namesSet.add(r.vendedor);
-        });
-        uniqueNames = Array.from(namesSet).sort();
-        alumnoSelect.innerHTML = "";
-        const optAll = document.createElement("option");
-        optAll.value = "All";
-        optAll.textContent = "All";
-        alumnoSelect.appendChild(optAll);
-        uniqueNames.forEach(name => {
-          const opt = document.createElement("option");
-          opt.value = name;
-          opt.textContent = name;
-          alumnoSelect.appendChild(opt);
-        });
-        controlsDiv.style.display = "block";
-        renderSessions();
-      } catch (err) {
-        console.error(err);
-        listContainer.innerHTML = "Network error loading sessions.";
-      }
-    };
-
-    viewModeSelect.onchange = () => {
-      labelAlumno.style.display = (viewModeSelect.value === "filter") ? "inline-block" : "none";
-      renderSessions();
-    };
-
-    alumnoSelect.onchange = () => {
-      renderSessions();
-    };
-
-    function renderSessions() {
-      const mode = viewModeSelect.value;
-      if (sessionsData.length === 0) {
-        listContainer.innerHTML = "No saved sessions.";
-        return;
-      }
-      if (mode === "all") {
-        renderTable(sessionsData, listContainer);
-      } else if (mode === "filter") {
-        const selected = alumnoSelect.value;
-        const filtered = sessionsData.filter(r => {
-          return selected === "All"
-            ? true
-            : (r.comprador === selected || r.vendedor === selected);
-        });
-        listContainer.innerHTML = filtered.length
-          ? buildTableHtml(filtered)
-          : "No sessions for the selected student.";
-      } else if (mode === "group") {
-        let html = "";
-        if (uniqueNames.length === 0) {
-          listContainer.innerHTML = "No students found.";
-          return;
-        }
-        uniqueNames.forEach(name => {
-          const group = sessionsData.filter(r => r.comprador === name || r.vendedor === name);
-          if (group.length > 0) {
-            html += `<h3>${name}</h3>`;
-            html += buildTableHtml(group);
-          }
-        });
-        listContainer.innerHTML = html;
-      }
-    }
-
-    function renderTable(dataArray, container) {
-      container.innerHTML = buildTableHtml(dataArray);
-    }
-
-    function buildTableHtml(dataArray) {
-      let html = '<table border="1" cellpadding="4" cellspacing="0" style="margin-bottom:20px;"><thead><tr>' +
-                 '<th>ID</th><th>Buyer</th><th>Seller</th><th>Products</th>' +
-                 '<th>Audio</th><th>Date</th></tr></thead><tbody>';
-      dataArray.forEach(r => {
-        const productsText = Array.isArray(r.productos)
-          ? r.productos.map(p => p.nombre + ':' + p.precio).join(', ')
-          : r.productos;
-        const audioElem = `<audio controls preload="metadata" src="${r.audio_url}"></audio>`;
-        const dateStr = new Date(r.timestamp).toLocaleString();
-        html += `<tr>
-          <td>${r.id}</td>
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
           <td>${r.comprador}</td>
           <td>${r.vendedor}</td>
-          <td>${productsText}</td>
-          <td>${audioElem}</td>
-          <td>${dateStr}</td>
-        </tr>`;
+          <td>${productosHTML}</td>
+          <td>${costesHTML}</td>
+          <td><audio controls src="${r.audio_url}"></audio></td>
+          <td>${new Date(r.timestamp).toLocaleString()}</td>
+        `;
+        tbody.appendChild(tr);
       });
-      html += '</tbody></table>';
-      return html;
-    }
-  </script>
+    });
+}
+
+window.onload = loadRoleplays;
+</script>
+
 </body>
 </html>
