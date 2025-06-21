@@ -35,5 +35,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['C:\\Users\\User\\Desktop\\Apps Python\\roleplay_app\\miicono.ico'],
+    icon=['icon.ico'],
 )

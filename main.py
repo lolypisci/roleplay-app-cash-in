@@ -4,7 +4,6 @@ import uuid
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 import models
@@ -13,14 +12,6 @@ def log_working_dir():
     print(f"[Startup] Working directory: {os.getcwd()}")
 
 app = FastAPI(on_startup=[log_working_dir])
-
-# CORS (por si accedes desde otros dispositivos o apps externas)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # Crear tablas si no existen
 models.Base.metadata.create_all(bind=engine)
@@ -47,6 +38,12 @@ async def upload_roleplay(
     if audio.content_type.split("/")[0] != "audio":
         raise HTTPException(status_code=400, detail="Must upload audio")
 
+    try:
+        productos_list = [p.strip() for p in productos.split(",") if p.strip()]
+        costes_list = [float(c.strip()) for c in costes.split(",") if c.strip()]
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid format in products or costs")
+
     ext = os.path.splitext(audio.filename)[1] or ".wav"
     filename = f"{uuid.uuid4().hex}{ext}"
     os.makedirs("uploads", exist_ok=True)
@@ -57,8 +54,8 @@ async def upload_roleplay(
     rp = models.Roleplay(
         comprador=comprador,
         vendedor=vendedor,
-        productos=productos,
-        costes=costes,
+        productos=json.dumps(productos_list),
+        costes=json.dumps(costes_list),
         audio_filename=filename
     )
     db.add(rp)
@@ -105,8 +102,8 @@ async def get_audio(filename: str):
 
 @app.get("/")
 async def serve_index():
-    return FileResponse("static/index.html", media_type="text/html")
+    return FileResponse("static/index.html")
 
 @app.get("/student")
 async def serve_student():
-    return FileResponse("static/student.html", media_type="text/html")
+    return FileResponse("static/student.html")

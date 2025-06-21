@@ -1,157 +1,188 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Roleplay Archive: Cash In - Student View</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Student Roleplay App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f7f9fc;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    textarea {
+      resize: vertical;
+      height: 60px;
+    }
+    button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      background-color: #3a86ff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:disabled {
+      background-color: #a0c1ff;
+      cursor: not-allowed;
+    }
+    audio {
+      margin-top: 10px;
+      width: 100%;
+    }
+  </style>
 </head>
 <body>
-  <h1>Roleplay Archive: Cash In</h1>
-  <h2>Student View</h2>
-  <p>Please enter your names and record. You will not be able to playback recordings.</p>
 
-  <!-- Recording section only -->
-  <div id="recordSection">
-    <label>Buyer Name: <input id="comprador" type="text" placeholder="e.g. John"/></label><br/>
-    <label>Seller Name: <input id="vendedor" type="text" placeholder="e.g. Mary"/></label><br/>
-    <button id="startBtn">Start Recording</button>
-    <button id="stopBtn" disabled>Stop Recording</button>
-    <p id="status"></p>
-    <div id="postForm" style="display:none;">
-      <h3>Purchase Details</h3>
-      <textarea id="productos" placeholder="e.g. apple:1.50, bread:2.00"></textarea><br/>
-      <button id="submitBtn">Submit Roleplay</button>
-    </div>
-  </div>
+  <h1>Roleplay Recording</h1>
 
-  <script>
-    let audioContext;
-    let processor;
-    let inputNode;
-    let recording = false;
-    let recordedBuffers = [];
-    let sampleRate;
+  <form id="roleplay-form">
 
-    const startBtn = document.getElementById("startBtn");
-    const stopBtn = document.getElementById("stopBtn");
-    const statusP = document.getElementById("status");
-    const postFormDiv = document.getElementById("postForm");
-    const submitBtn = document.getElementById("submitBtn");
+    <label for="buyer">Buyer Name</label>
+    <input type="text" id="buyer" name="buyer" required />
 
-    startBtn.onclick = async () => {
-      const buyer = document.getElementById("comprador").value.trim();
-      const seller = document.getElementById("vendedor").value.trim();
-      if (!buyer || !seller) {
-        alert("Please enter buyer and seller names before recording.");
-        return;
-      }
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        sampleRate = audioContext.sampleRate;
-        inputNode = audioContext.createMediaStreamSource(stream);
-        processor = audioContext.createScriptProcessor(4096, 1, 1);
-        recordedBuffers = [];
-        recording = true;
-        processor.onaudioprocess = e => {
-          if (!recording) return;
-          const channelData = e.inputBuffer.getChannelData(0);
-          recordedBuffers.push(new Float32Array(channelData));
-        };
-        inputNode.connect(processor);
-        processor.connect(audioContext.destination);
-        statusP.textContent = "Recording...";
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
-      } catch (err) {
-        console.error(err);
-        alert("Error accessing microphone.");
-      }
-    };
+    <label for="seller">Seller Name</label>
+    <input type="text" id="seller" name="seller" required />
 
-    stopBtn.onclick = () => {
-      if (recording) {
-        recording = false;
-        if (processor) processor.disconnect();
-        if (inputNode) inputNode.disconnect();
-        statusP.textContent = "Recording stopped.";
-        postFormDiv.style.display = "block";
-        startBtn.disabled = false;
-        stopBtn.disabled = true;
-      }
-    };
+    <label for="products">Purchased Items (separate by commas)</label>
+    <textarea id="products" name="products" placeholder="e.g. apples, bread, milk" required></textarea>
 
-    function encodeWAV(buffers, sampleRate) {
-      let totalLength = buffers.reduce((sum, buf) => sum + buf.length, 0);
-      let buffer = new ArrayBuffer(44 + totalLength * 2);
-      let view = new DataView(buffer);
-      function writeString(view, offset, string) {
-        for (let i = 0; i < string.length; i++) {
-          view.setUint8(offset + i, string.charCodeAt(i));
-        }
-      }
-      writeString(view, 0, 'RIFF');
-      view.setUint32(4, 36 + totalLength * 2, true);
-      writeString(view, 8, 'WAVE');
-      writeString(view, 12, 'fmt ');
-      view.setUint32(16, 16, true);
-      view.setUint16(20, 1, true);
-      view.setUint16(22, 1, true);
-      view.setUint32(24, sampleRate, true);
-      view.setUint32(28, sampleRate * 2, true);
-      view.setUint16(32, 2, true);
-      view.setUint16(34, 16, true);
-      writeString(view, 36, 'data');
-      view.setUint32(40, totalLength * 2, true);
-      let offset = 44;
-      buffers.forEach(buf => {
-        for (let i = 0; i < buf.length; i++) {
-          let s = Math.max(-1, Math.min(1, buf[i]));
-          view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-          offset += 2;
-        }
-      });
-      return new Blob([view], { type: 'audio/wav' });
+    <label for="costs">Costs of Items (separate by commas, only numbers)</label>
+    <textarea id="costs" name="costs" placeholder="e.g. 1.50, 2.00, 0.80" required></textarea>
+
+    <button type="button" id="start-recording">Start Recording</button>
+    <button type="button" id="stop-recording" disabled>Stop Recording</button>
+
+    <audio id="audio-playback" controls hidden></audio>
+
+    <button type="submit" id="submit-roleplay" disabled>Submit Roleplay</button>
+
+  </form>
+
+<script>
+  let mediaRecorder;
+  let audioChunks = [];
+
+  const startBtn = document.getElementById('start-recording');
+  const stopBtn = document.getElementById('stop-recording');
+  const submitBtn = document.getElementById('submit-roleplay');
+  const audioPlayback = document.getElementById('audio-playback');
+
+  startBtn.onclick = async () => {
+    audioChunks = [];
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.start();
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      submitBtn.disabled = true;
+      audioPlayback.hidden = true;
+
+      mediaRecorder.ondataavailable = event => {
+        audioChunks.push(event.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        audioPlayback.src = audioUrl;
+        audioPlayback.hidden = false;
+        submitBtn.disabled = false;
+
+        // Keep audioBlob for submitting
+        submitBtn.audioBlob = audioBlob;
+      };
+    } catch (error) {
+      alert('Error accessing microphone: ' + error.message);
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    }
+  };
+
+  stopBtn.onclick = () => {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    }
+  };
+
+  document.getElementById('roleplay-form').onsubmit = async (e) => {
+    e.preventDefault();
+
+    const buyer = document.getElementById('buyer').value.trim();
+    const seller = document.getElementById('seller').value.trim();
+    const productsText = document.getElementById('products').value.trim();
+    const costsText = document.getElementById('costs').value.trim();
+
+    if (!buyer || !seller || !productsText || !costsText) {
+      alert('Please fill all fields.');
+      return;
     }
 
-    submitBtn.onclick = async () => {
-      const buyer = document.getElementById("comprador").value.trim();
-      const seller = document.getElementById("vendedor").value.trim();
-      const productsText = document.getElementById("productos").value.trim();
-      if (!productsText) {
-        alert("Please enter products and prices.");
-        return;
-      }
-      const wavBlob = encodeWAV(recordedBuffers, sampleRate);
-      const formData = new FormData();
-      formData.append("comprador", buyer);
-      formData.append("vendedor", seller);
-      const productsArr = productsText.split(",").map(item => {
-        const [name, price] = item.split(":").map(s => s.trim());
-        return { nombre: name, precio: parseFloat(price) };
+    // Parse products and costs
+    const products = productsText.split(',').map(p => p.trim()).filter(p => p.length > 0);
+    const costs = costsText.split(',').map(c => parseFloat(c.trim())).filter(c => !isNaN(c));
+
+    if (products.length === 0 || costs.length === 0) {
+      alert('Please enter valid products and costs separated by commas.');
+      return;
+    }
+    if (products.length !== costs.length) {
+      alert('Number of products and costs must match.');
+      return;
+    }
+
+    if (!submitBtn.audioBlob) {
+      alert('Please record audio first.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('comprador', buyer);
+    formData.append('vendedor', seller);
+    formData.append('productos', JSON.stringify(products));
+    formData.append('costes', JSON.stringify(costs));
+    formData.append('audio', submitBtn.audioBlob, 'recording.webm');
+
+    try {
+      const res = await fetch('/upload', {
+        method: 'POST',
+        body: formData
       });
-      formData.append("productos_json", JSON.stringify(productsArr));
-      formData.append("audio", wavBlob, "roleplay.wav");
-      try {
-        const resp = await fetch("/upload", {
-          method: "POST",
-          body: formData
-        });
-        if (!resp.ok) {
-          const err = await resp.json();
-          alert("Upload error: " + JSON.stringify(err));
-        } else {
-          alert("Recording submitted successfully.");
-          postFormDiv.style.display = "none";
-          statusP.textContent = "";
-          recordedBuffers = [];
-          document.getElementById("productos").value = "";
-        }
-      } catch (err) {
-        console.error(err);
-        alert("Network error during upload.");
+
+      const json = await res.json();
+
+      if (json.status === 'ok') {
+        alert('Roleplay uploaded successfully!');
+        document.getElementById('roleplay-form').reset();
+        audioPlayback.hidden = true;
+        submitBtn.audioBlob = null;
+        submitBtn.disabled = true;
+      } else {
+        alert('Error uploading roleplay.');
       }
-    };
-  </script>
+    } catch (err) {
+      alert('Error uploading roleplay: ' + err.message);
+    }
+  };
+</script>
+
 </body>
 </html>
