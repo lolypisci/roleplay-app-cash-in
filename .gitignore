@@ -2,9 +2,6 @@
 roleplay.db
 uploads/
 
-# Backups (no subir)
-updates/
-
 # Entornos y caches
 venv/
 .env
@@ -20,10 +17,12 @@ Thumbs.db
 # Config local/secretos
 config_local.json
 credentials.json
-*.key
-*.pem
+*.key *.pem
 
 # Logs y builds
 *.log
 dist/
 build/
+
+# Carpeta de backups, no subirlas
+updates/

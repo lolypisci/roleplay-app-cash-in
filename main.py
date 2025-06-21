@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 import models
+from datetime import datetime
 
 def log_working_dir():
     print(f"[Startup] Working directory: {os.getcwd()}")
@@ -38,12 +39,6 @@ async def upload_roleplay(
     if audio.content_type.split("/")[0] != "audio":
         raise HTTPException(status_code=400, detail="Must upload audio")
 
-    try:
-        productos_list = [p.strip() for p in productos.split(",") if p.strip()]
-        costes_list = [float(c.strip()) for c in costes.split(",") if c.strip()]
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid format in products or costs")
-
     ext = os.path.splitext(audio.filename)[1] or ".wav"
     filename = f"{uuid.uuid4().hex}{ext}"
     os.makedirs("uploads", exist_ok=True)
@@ -54,8 +49,8 @@ async def upload_roleplay(
     rp = models.Roleplay(
         comprador=comprador,
         vendedor=vendedor,
-        productos=json.dumps(productos_list),
-        costes=json.dumps(costes_list),
+        productos=productos,
+        costes=costes,
         audio_filename=filename
     )
     db.add(rp)
@@ -99,6 +94,26 @@ async def get_audio(filename: str):
         ".mp3": "audio/mpeg"
     }.get(ext, "application/octet-stream")
     return FileResponse(path, media_type=media)
+
+@app.get("/uploads")
+def list_uploads():
+    UPLOADS_FOLDER = "uploads"
+    if not os.path.isdir(UPLOADS_FOLDER):
+        return JSONResponse(content=[], status_code=200)
+
+    files = []
+    for fname in os.listdir(UPLOADS_FOLDER):
+        if fname.lower().endswith((".wav", ".webm", ".mp3")):
+            path = os.path.join(UPLOADS_FOLDER, fname)
+            files.append({
+                "filename": fname,
+                "timestamp": datetime.fromtimestamp(os.path.getmtime(path)).isoformat()
+            })
+
+    # Ordenar por fecha descendente (más reciente primero)
+    files.sort(key=lambda x: x["timestamp"], reverse=True)
+
+    return JSONResponse(content=files)
 
 @app.get("/")
 async def serve_index():

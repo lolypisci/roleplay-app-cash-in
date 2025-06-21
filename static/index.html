@@ -1,179 +1,232 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Teacher View - Roleplay App</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5; }
-    h1 { color: #2c3e50; }
-    table { border-collapse: collapse; width: 100%; background: #fff; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-    th { background-color: #ecf0f1; }
-    .section { background: #ffffff; padding: 20px; margin-bottom: 30px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
-    label, input, textarea, select, button { margin: 5px 0; display: block; width: 100%; }
-    input, textarea { padding: 5px; }
-    button { background-color: #2980b9; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 5px; }
-    button:hover { background-color: #1f6391; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Teacher View - Roleplay Archive</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background-color: #f9f9f9;
+    color: #333;
+  }
+  h1, h2 {
+    color: #2c3e50;
+  }
+  label, select, button {
+    font-size: 1rem;
+    margin-top: 10px;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 10px;
+    background-color: white;
+    box-shadow: 0 0 5px #ccc;
+  }
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+  }
+  th {
+    background-color: #2980b9;
+    color: white;
+  }
+  audio {
+    width: 150px;
+  }
+  button {
+    cursor: pointer;
+    padding: 6px 12px;
+    margin-top: 10px;
+    background-color: #2980b9;
+    color: white;
+    border: none;
+    border-radius: 3px;
+  }
+  button:hover {
+    background-color: #1f6391;
+  }
+  .section {
+    margin-top: 30px;
+  }
+</style>
 </head>
-
 <body>
-  <h1>Teacher View - Roleplay App</h1>
 
-  <div class="section">
-    <h2>Record Roleplay</h2>
-    <label>Buyer Name: <input id="buyer" /></label>
-    <label>Seller Name: <input id="seller" /></label>
-    <label>Purchased Items (comma-separated): <input id="products" /></label>
-    <label>Costs (comma-separated, e.g. 3.50, 2): <input id="costs" /></label>
-    <button onclick="startRecording()">Start Recording</button>
-    <button onclick="stopRecording()">Stop Recording</button>
-    <button onclick="submitRoleplay()">Submit Roleplay</button>
-    <p id="status"></p>
-  </div>
+<h1>Saved Sessions</h1>
 
-  <div class="section">
-    <h2>Saved Sessions</h2>
-    <label for="filter-student">Filter by Student:</label>
-    <select id="filter-student">
-      <option value="all">All</option>
-    </select>
-    <button onclick="loadRoleplays()">Refresh Table</button>
-    <table id="roleplays-table">
-      <thead>
-        <tr>
-          <th>Buyer</th>
-          <th>Seller</th>
-          <th>Purchased Items</th>
-          <th>Total Cost</th>
-          <th>Audio</th>
-          <th>Timestamp</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
+<label for="filter-student">Filter by Student:</label>
+<select id="filter-student">
+  <option value="all">All</option>
+</select>
+<button id="refresh-roleplays">Refresh Sessions</button>
 
-  <script>
-    let mediaRecorder, audioBlob;
-    let allRoleplays = [];
+<table border="1" id="roleplays-table" style="margin-top: 10px;">
+  <thead>
+    <tr>
+      <th>Buyer</th>
+      <th>Seller</th>
+      <th>Purchased Items</th>
+      <th>Total Cost</th>
+      <th>Audio</th>
+      <th>Timestamp</th>
+    </tr>
+  </thead>
+  <tbody>
+  </tbody>
+</table>
 
-    function startRecording() {
-      navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(stream => {
-          mediaRecorder = new MediaRecorder(stream);
-          const chunks = [];
-          mediaRecorder.ondataavailable = e => chunks.push(e.data);
-          mediaRecorder.onstop = () => {
-            audioBlob = new Blob(chunks, { type: 'audio/webm' });
-          };
-          mediaRecorder.start();
-          document.getElementById("status").innerText = "Recording...";
-        })
-        .catch(err => alert("Microphone access denied."));
+<div class="section">
+  <h2>Record a New Roleplay</h2>
+  <form id="roleplay-form">
+    <label for="comprador">Buyer Name:</label><br/>
+    <input type="text" id="comprador" name="comprador" required/><br/>
+    <label for="vendedor">Seller Name:</label><br/>
+    <input type="text" id="vendedor" name="vendedor" required/><br/>
+    <label for="productos">Products (comma separated):</label><br/>
+    <input type="text" id="productos" name="productos" required/><br/>
+    <label for="costes">Costs (comma separated):</label><br/>
+    <input type="text" id="costes" name="costes" required/><br/>
+    <label for="audio">Audio File:</label><br/>
+    <input type="file" id="audio" name="audio" accept="audio/*" required/><br/>
+    <button type="submit">Submit Roleplay</button>
+  </form>
+</div>
+
+<div class="section">
+  <h2>Uploads History</h2>
+  <button id="refresh-uploads">Refresh Uploads</button>
+  <ul id="uploads-list"></ul>
+</div>
+
+<script>
+let allRoleplays = [];
+
+function populateFilterOptions(roleplays) {
+  const select = document.getElementById('filter-student');
+  const studentsSet = new Set();
+
+  roleplays.forEach(r => {
+    studentsSet.add(r.comprador);
+    studentsSet.add(r.vendedor);
+  });
+
+  // Clear options except "All"
+  while (select.options.length > 1) {
+    select.remove(1);
+  }
+
+  studentsSet.forEach(student => {
+    const option = document.createElement('option');
+    option.value = student;
+    option.textContent = student;
+    select.appendChild(option);
+  });
+}
+
+function renderTable(filteredRoleplays) {
+  const tbody = document.querySelector("#roleplays-table tbody");
+  tbody.innerHTML = "";
+
+  filteredRoleplays.forEach(r => {
+    const totalCost = r.costes.reduce((a, b) => a + b, 0).toFixed(2);
+    const productosHTML = r.productos.join(", ");
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${r.comprador}</td>
+      <td>${r.vendedor}</td>
+      <td>${productosHTML}</td>
+      <td>€${totalCost}</td>
+      <td><audio controls src="${r.audio_url}"></audio></td>
+      <td>${new Date(r.timestamp).toLocaleString()}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function loadRoleplays() {
+  fetch('/roleplays')
+    .then(response => response.json())
+    .then(data => {
+      allRoleplays = data;
+      populateFilterOptions(allRoleplays);
+      renderTable(allRoleplays);
+    })
+    .catch(() => alert('Failed to load roleplays'));
+}
+
+document.getElementById('filter-student').addEventListener('change', (e) => {
+  const selected = e.target.value;
+  if (selected === 'all') {
+    renderTable(allRoleplays);
+  } else {
+    const filtered = allRoleplays.filter(r => r.comprador === selected || r.vendedor === selected);
+    renderTable(filtered);
+  }
+});
+
+document.getElementById('refresh-roleplays').addEventListener('click', loadRoleplays);
+
+// Form submission to upload roleplay
+document.getElementById('roleplay-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const formData = new FormData(form);
+
+  // Convert comma separated to JSON strings for products and costs
+  formData.set('productos', JSON.stringify(formData.get('productos').split(',').map(p => p.trim())));
+  formData.set('costes', JSON.stringify(formData.get('costes').split(',').map(c => parseFloat(c.trim()) || 0)));
+
+  try {
+    const res = await fetch('/upload', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    if (data.status === 'ok') {
+      alert('Roleplay uploaded successfully!');
+      form.reset();
+      loadRoleplays();
+    } else {
+      alert('Failed to upload roleplay');
     }
+  } catch {
+    alert('Error uploading roleplay');
+  }
+});
 
-    function stopRecording() {
-      if (mediaRecorder && mediaRecorder.state !== "inactive") {
-        mediaRecorder.stop();
-        document.getElementById("status").innerText = "Recording stopped.";
-      }
-    }
-
-    function submitRoleplay() {
-      const buyer = document.getElementById("buyer").value;
-      const seller = document.getElementById("seller").value;
-      const productos = document.getElementById("products").value.split(',').map(p => p.trim());
-      const costes = document.getElementById("costs").value.split(',').map(c => parseFloat(c.trim()));
-
-      if (!audioBlob) {
-        alert("Please record the roleplay first.");
+// Uploads history
+document.getElementById('refresh-uploads').addEventListener('click', () => {
+  fetch('/uploads')
+    .then(res => res.json())
+    .then(files => {
+      const ul = document.getElementById('uploads-list');
+      ul.innerHTML = "";
+      if (files.length === 0) {
+        ul.innerHTML = "<li>No uploads found</li>";
         return;
       }
-
-      const formData = new FormData();
-      formData.append("comprador", buyer);
-      formData.append("vendedor", seller);
-      formData.append("productos", JSON.stringify(productos));
-      formData.append("costes", JSON.stringify(costes));
-      formData.append("audio", audioBlob, "recording.webm");
-
-      fetch("/upload", {
-        method: "POST",
-        body: formData
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.status === "ok") {
-            document.getElementById("status").innerText = "Upload successful!";
-            loadRoleplays();
-          } else {
-            throw new Error("Upload failed");
-          }
-        })
-        .catch(() => document.getElementById("status").innerText = "Upload failed.");
-    }
-
-    function populateFilterOptions(roleplays) {
-      const select = document.getElementById('filter-student');
-      const studentsSet = new Set();
-      roleplays.forEach(r => {
-        studentsSet.add(r.comprador);
-        studentsSet.add(r.vendedor);
+      files.forEach(f => {
+        const li = document.createElement('li');
+        li.textContent = `${f.filename} - ${new Date(f.timestamp).toLocaleString()}`;
+        ul.appendChild(li);
       });
-      while (select.options.length > 1) select.remove(1);
-      studentsSet.forEach(student => {
-        const option = document.createElement('option');
-        option.value = student;
-        option.textContent = student;
-        select.appendChild(option);
-      });
-    }
-
-    function renderTable(filteredRoleplays) {
-      const tbody = document.querySelector("#roleplays-table tbody");
-      tbody.innerHTML = "";
-      filteredRoleplays.forEach(r => {
-        const totalCost = r.costes.reduce((a, b) => a + b, 0).toFixed(2);
-        const productosHTML = r.productos.join(", ");
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${r.comprador}</td>
-          <td>${r.vendedor}</td>
-          <td>${productosHTML}</td>
-          <td>€${totalCost}</td>
-          <td><audio controls src="${r.audio_url}"></audio></td>
-          <td>${new Date(r.timestamp).toLocaleString()}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function loadRoleplays() {
-      fetch('/roleplays')
-        .then(res => res.json())
-        .then(data => {
-          allRoleplays = data;
-          populateFilterOptions(data);
-          renderTable(data);
-        });
-    }
-
-    document.getElementById('filter-student').addEventListener('change', (e) => {
-      const selected = e.target.value;
-      if (selected === 'all') {
-        renderTable(allRoleplays);
-      } else {
-        const filtered = allRoleplays.filter(r => r.comprador === selected || r.vendedor === selected);
-        renderTable(filtered);
-      }
+    })
+    .catch(() => {
+      alert("Failed to load uploads.");
     });
+});
 
-    window.onload = loadRoleplays;
-  </script>
+// Initial load
+window.onload = () => {
+  loadRoleplays();
+  document.getElementById('refresh-uploads').click();
+};
+</script>
 
 </body>
-
 </html>
