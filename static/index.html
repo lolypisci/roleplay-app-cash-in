@@ -1,157 +1,101 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Teacher View - Roleplay Archive</title>
-  <style>
-    label, input, button, textarea, select {
-      display: block;
-      margin: 5px 0;
-    }
-    table {
-      margin-top: 20px;
-      border-collapse: collapse;
-      width: 100%;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Teacher View - Roleplay Archive</title>
 </head>
 <body>
 
-  <h1>Teacher View - Record & Review</h1>
+<h1>Saved Sessions</h1>
 
-  <h2>Record a New Roleplay</h2>
-  <label for="buyer">Buyer Name:</label>
-  <input type="text" id="buyer">
-  <label for="seller">Seller Name:</label>
-  <input type="text" id="seller">
+<label for="filter-student">Filter by Student:</label>
+<select id="filter-student">
+  <option value="all">All</option>
+</select>
 
-  <label for="products">Purchased Items (comma-separated):</label>
-  <textarea id="products" rows="3" cols="50"></textarea>
-
-  <label for="costs">Costs (comma-separated numbers):</label>
-  <textarea id="costs" rows="2" cols="50"></textarea>
-
-  <button onclick="startRecording()">Start Recording</button>
-  <button onclick="stopRecording()" disabled>Stop Recording</button>
-  <button onclick="submitRoleplay()" disabled>Submit Roleplay</button>
-  <p id="status"></p>
-
-  <h2>Saved Sessions</h2>
-
-  <label for="filter-select">Filter by Student:</label>
-  <select id="filter-select" onchange="loadRoleplays()">
-    <option value="">All</option>
-  </select>
-
-  <button onclick="loadRoleplays()">Refresh Table</button>
-
-  <table id="roleplays-table">
-    <thead>
-      <tr>
-        <th>Buyer</th>
-        <th>Seller</th>
-        <th>Purchased Items</th>
-        <th>Total Cost</th>
-        <th>Audio</th>
-        <th>Timestamp</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+<table border="1" id="roleplays-table" style="margin-top: 10px;">
+  <thead>
+    <tr>
+      <th>Buyer</th>
+      <th>Seller</th>
+      <th>Purchased Items</th>
+      <th>Total Cost</th>
+      <th>Audio</th>
+      <th>Timestamp</th>
+    </tr>
+  </thead>
+  <tbody>
+  </tbody>
+</table>
 
 <script>
-let audioBlob = null;
-let mediaRecorder = null;
-let audioChunks = [];
+let allRoleplays = [];
 
-function startRecording() {
-  audioChunks = [];
-  navigator.mediaDevices.getUserMedia({ audio: true })
-    .then(stream => {
-      mediaRecorder = new MediaRecorder(stream);
-      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-      mediaRecorder.onstop = () => {
-        audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-        document.querySelector("button[onclick='submitRoleplay()']").disabled = false;
-      };
-      mediaRecorder.start();
-      document.querySelector("button[onclick='startRecording()']").disabled = true;
-      document.querySelector("button[onclick='stopRecording()']").disabled = false;
-    })
-    .catch(err => alert("Microphone error: " + err));
-}
+function populateFilterOptions(roleplays) {
+  const select = document.getElementById('filter-student');
+  const studentsSet = new Set();
 
-function stopRecording() {
-  mediaRecorder.stop();
-  document.querySelector("button[onclick='stopRecording()']").disabled = true;
-}
+  roleplays.forEach(r => {
+    studentsSet.add(r.comprador);
+    studentsSet.add(r.vendedor);
+  });
 
-function submitRoleplay() {
-  const buyer = document.getElementById("buyer").value.trim();
-  const seller = document.getElementById("seller").value.trim();
-  const products = document.getElementById("products").value.trim().split(",").map(p => p.trim());
-  const costs = document.getElementById("costs").value.trim().split(",").map(c => parseFloat(c.trim()));
-  if (!buyer || !seller || products.length === 0 || costs.length === 0 || !audioBlob) {
-    alert("Please complete all fields and record audio.");
-    return;
+  // Clear options except "All"
+  while (select.options.length > 1) {
+    select.remove(1);
   }
-  const formData = new FormData();
-  formData.append("comprador", buyer);
-  formData.append("vendedor", seller);
-  formData.append("productos", JSON.stringify(products));
-  formData.append("costes", JSON.stringify(costs));
-  formData.append("audio", audioBlob, "roleplay.wav");
-  fetch("/upload", { method: "POST", body: formData })
-    .then(res => res.json())
-    .then(json => {
-      document.getElementById("status").textContent = "Upload successful.";
-      loadRoleplays();
-    })
-    .catch(err => {
-      document.getElementById("status").textContent = "Upload failed.";
-      alert("Error: " + err);
-    });
+
+  studentsSet.forEach(student => {
+    const option = document.createElement('option');
+    option.value = student;
+    option.textContent = student;
+    select.appendChild(option);
+  });
+}
+
+function renderTable(filteredRoleplays) {
+  const tbody = document.querySelector("#roleplays-table tbody");
+  tbody.innerHTML = "";
+
+  filteredRoleplays.forEach(r => {
+    const totalCost = r.costes.reduce((a, b) => a + b, 0).toFixed(2);
+    const productosHTML = r.productos.join(", ");
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${r.comprador}</td>
+      <td>${r.vendedor}</td>
+      <td>${productosHTML}</td>
+      <td>€${totalCost}</td>
+      <td><audio controls src="${r.audio_url}"></audio></td>
+      <td>${new Date(r.timestamp).toLocaleString()}</td>
+    `;
+    tbody.appendChild(tr);
+  });
 }
 
 function loadRoleplays() {
-  fetch("/roleplays")
-    .then(res => res.json())
+  fetch('/roleplays')
+    .then(response => response.json())
     .then(data => {
-      const tbody = document.querySelector("#roleplays-table tbody");
-      tbody.innerHTML = "";
-      const select = document.getElementById("filter-select");
-      const uniqueStudents = new Set();
-
-      data.forEach(r => {
-        uniqueStudents.add(r.comprador);
-        uniqueStudents.add(r.vendedor);
-      });
-
-      select.innerHTML = '<option value="">All</option>' +
-        Array.from(uniqueStudents).map(name => `<option value="${name}">${name}</option>`).join("");
-
-      const filter = select.value;
-      data.filter(r => !filter || r.comprador === filter || r.vendedor === filter)
-          .forEach(r => {
-        const total = r.costes.reduce((a,b) => a + b, 0).toFixed(2);
-        const row = `<tr>
-          <td>${r.comprador}</td>
-          <td>${r.vendedor}</td>
-          <td>${r.productos.join(", ")}</td>
-          <td>€${total}</td>
-          <td><audio controls src="${r.audio_url}"></audio></td>
-          <td>${new Date(r.timestamp).toLocaleString()}</td>
-        </tr>`;
-        tbody.insertAdjacentHTML("beforeend", row);
-      });
+      allRoleplays = data;
+      populateFilterOptions(allRoleplays);
+      renderTable(allRoleplays);
     });
 }
 
+document.getElementById('filter-student').addEventListener('change', (e) => {
+  const selected = e.target.value;
+  if (selected === 'all') {
+    renderTable(allRoleplays);
+  } else {
+    const filtered = allRoleplays.filter(r => r.comprador === selected || r.vendedor === selected);
+    renderTable(filtered);
+  }
+});
+
+// Load the table on page load
 window.onload = loadRoleplays;
 </script>
 
