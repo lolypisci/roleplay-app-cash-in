@@ -5,7 +5,7 @@ a = Analysis(
     ['rolefy_launcher.py'],
     pathex=[],
     binaries=[],
-    datas=[('static', 'static')],
+    datas=[],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
