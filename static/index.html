@@ -1,27 +1,105 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Rolefy – Teacher View</title>
-  <link rel="icon" href="icon.ico"/>
+  <link rel="icon" href="/static/icon.ico" />
   <style>
-    body { font-family: Arial, sans-serif; margin:20px; background:#f4f6f8; color:#333; }
-    header { display:flex; align-items:center; gap:10px; }
-    header img { height:40px; }
-    header h1 { margin:0; font-size:1.8rem; }
-    .tabs { margin-top:20px; }
-    .tabs button { padding:10px 20px; margin-right:5px; border:none; background:#ddd; cursor:pointer; }
-    .tabs button.active { background:#2980b9; color:#fff;}
-    .tab-content { margin-top:20px; }
-    table { width:100%; border-collapse:collapse; background:#fff; box-shadow:0 0 5px rgba(0,0,0,0.1);}
-    th,td{padding:8px;border:1px solid #e0e0e0;text-align:left;}
-    th {background:#2980b9;color:#fff;}
-    td.editable:hover {background:#f0f8ff;cursor:pointer;}
-    button.primary { background:#2980b9;color:white;border:none;padding:8px 12px;border-radius:3px;cursor:pointer;}
-    button.primary:hover { background:#1f6391; }
-    form label{display:block;margin-top:10px;}
-    form input, form textarea{width:100%;padding:6px; margin-top:4px; border:1px solid #ccc; border-radius:3px;}
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f4f6f8;
+      color: #333;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    header img {
+      height: 40px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.8rem;
+    }
+
+    .tabs {
+      margin-top: 20px;
+    }
+
+    .tabs button {
+      padding: 10px 20px;
+      margin-right: 5px;
+      border: none;
+      background: #ddd;
+      cursor: pointer;
+    }
+
+    .tabs button.active {
+      background: #2980b9;
+      color: #fff;
+    }
+
+    .tab-content {
+      margin-top: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+    }
+
+    th,
+    td {
+      padding: 8px;
+      border: 1px solid #e0e0e0;
+      text-align: left;
+    }
+
+    th {
+      background: #2980b9;
+      color: #fff;
+    }
+
+    td.editable:hover {
+      background: #f0f8ff;
+      cursor: pointer;
+    }
+
+    button.primary {
+      background: #2980b9;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+
+    button.primary:hover {
+      background: #1f6391;
+    }
+
+    form label {
+      display: block;
+      margin-top: 10px;
+    }
+
+    form input,
+    form textarea {
+      width: 100%;
+      padding: 6px;
+      margin-top: 4px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
 
     /* Estilos para grabadora */
     #recorder-controls {
@@ -30,6 +108,7 @@
       align-items: center;
       gap: 10px;
     }
+
     #record-timer {
       font-weight: bold;
       font-family: monospace;
@@ -38,275 +117,304 @@
     }
   </style>
 </head>
+
 <body>
-<header>
-  <img src="logo.png" alt="Rolefy Logo"/>
-  <h1>Rolefy – Teacher View</h1>
-</header>
+  <header>
+    <img src="/static/logo.png" alt="Rolefy Logo" />
+    <h1>Rolefy – Teacher View</h1>
+  </header>
 
-<div class="tabs">
-  <button id="tab-sessions" class="active">Saved Sessions</button>
-  <button id="tab-record">Record Roleplay</button>
-</div>
-
-<div id="content-sessions" class="tab-content">
-  <div style="margin-bottom:10px;">
-    <label>Filter by Student:
-      <select id="filter-student"><option value="all">All</option></select>
-    </label>
-    <button id="refresh-roleplays" class="primary">Refresh</button>
+  <div class="tabs">
+    <button id="tab-sessions" class="active">Saved Sessions</button>
+    <button id="tab-record">Record Roleplay</button>
   </div>
-  <table>
-    <thead>
-      <tr><th>Buyer</th><th>Seller</th><th>Items</th><th>Total (€)</th>
-          <th>Audio</th><th>Feedback</th><th>Score</th><th>Timestamp</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
 
-<div id="content-record" class="tab-content" style="display:none;">
-  <form id="roleplay-form">
-    <label>Buyer Name:<input type="text" name="comprador" required></label>
-    <label>Seller Name:<input type="text" name="vendedor" required></label>
-    <label>Products (comma separated):<input type="text" name="productos" required></label>
-    <label>Costs (comma separated):<input type="text" name="costes" required></label>
-
-    <!-- Selector archivo tradicional -->
-    <label>Audio File (choose file or record):<input type="file" id="audio-file" name="audio" accept="audio/*"></label>
-
-    <!-- Grabadora integrada -->
-    <div id="recorder-controls">
-      <button type="button" id="btn-record" class="primary">Record</button>
-      <button type="button" id="btn-stop" class="primary" disabled>Stop</button>
-      <button type="button" id="btn-cancel" class="primary" disabled>Cancel</button>
-      <div id="record-timer">00:00</div>
+  <div id="content-sessions" class="tab-content">
+    <div style="margin-bottom:10px;">
+      <label>Filter by Student:
+        <select id="filter-student"><option value="all">All</option></select>
+      </label>
+      <button id="refresh-roleplays" class="primary">Refresh</button>
+      <button id="btn-backup" class="primary">Create Backup</button>
+      <button id="btn-restart" class="primary">Restart Railway</button>
     </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Buyer</th>
+          <th>Seller</th>
+          <th>Items</th>
+          <th>Total (€)</th>
+          <th>Audio</th>
+          <th>Feedback</th>
+          <th>Score</th>
+          <th>Timestamp</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
-    <button type="submit" class="primary" style="margin-top:15px;">Submit Roleplay</button>
-  </form>
-</div>
+  <div id="content-record" class="tab-content" style="display:none;">
+    <form id="roleplay-form">
+      <label>Buyer Name:<input type="text" name="comprador" required /></label>
+      <label>Seller Name:<input type="text" name="vendedor" required /></label>
+      <label>Products (comma separated):<input type="text" name="productos" required /></label>
+      <label>Costs (comma separated):<input type="text" name="costes" required /></label>
 
-<script>
-let allRoleplays = [];
-let mediaRecorder;
-let audioChunks = [];
-let recordingStartTime = null;
-let recordTimerInterval = null;
+      <!-- Selector archivo tradicional -->
+      <label>Audio File (choose file or record):
+        <input type="file" id="audio-file" name="audio" accept="audio/*" />
+      </label>
 
-// Tabs
-document.getElementById('tab-sessions').onclick = () => {
-  document.getElementById('content-sessions').style.display = '';
-  document.getElementById('content-record').style.display = 'none';
-  tabActive('sessions');
-};
-document.getElementById('tab-record').onclick = () => {
-  document.getElementById('content-sessions').style.display = 'none';
-  document.getElementById('content-record').style.display = '';
-  tabActive('record');
-};
-function tabActive(id){
-  document.getElementById('tab-sessions').classList.toggle('active', id==='sessions');
-  document.getElementById('tab-record').classList.toggle('active', id==='record');
-}
+      <!-- Grabadora integrada -->
+      <div id="recorder-controls">
+        <button type="button" id="btn-record" class="primary">Record</button>
+        <button type="button" id="btn-stop" class="primary" disabled>Stop</button>
+        <button type="button" id="btn-cancel" class="primary" disabled>Cancel</button>
+        <div id="record-timer">00:00</div>
+      </div>
 
-// Load & render
-async function loadRoleplays(){
-  allRoleplays = await fetch('/roleplays').then(r=>r.json());
-  populateFilterOptions();
-  renderTable(allRoleplays);
-}
-function populateFilterOptions(){
-  const sel = document.getElementById('filter-student');
-  const set = new Set();
-  allRoleplays.forEach(r=>{
-    set.add(r.comprador);
-    set.add(r.vendedor);
-  });
-  sel.innerHTML = '<option value="all">All</option>';
-  set.forEach(s=> sel.innerHTML += `<option value="${s}">${s}</option>`);
-}
-function renderTable(data){
-  const tbody = document.querySelector('tbody'); 
-  tbody.innerHTML = '';
-  data.forEach(r=>{
-    const total = r.costes.reduce((a,b)=>a+b,0).toFixed(2);
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${r.comprador}</td>
-      <td>${r.vendedor}</td>
-      <td>${r.productos.join(', ')}</td>
-      <td>€${total}</td>
-      <td><audio controls src="${r.audio_url}"></audio></td>
-      <td class="editable" data-id="${r.id}" data-field="feedback">${r.feedback}</td>
-      <td class="editable" data-id="${r.id}" data-field="nota">${r.nota}</td>
-      <td>${new Date(r.timestamp).toLocaleString()}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-  makeEditable();
-}
+      <button type="submit" class="primary" style="margin-top:15px;">Submit Roleplay</button>
+    </form>
+  </div>
 
-// Inline editing
-function makeEditable(){
-  document.querySelectorAll('.editable').forEach(td=>{
-    td.onclick = async ()=>{
-      const old = td.textContent;
-      const input = document.createElement(td.dataset.field==='nota'?'input':'textarea');
-      input.value = old;
-      td.innerHTML = '';
-      td.appendChild(input);
-      input.focus();
-      input.onblur = async ()=>{
-        const val = input.value;
-        const payload = { id: td.dataset.id };
-        payload[td.dataset.field] = val;
-        const res = await fetch('/update_feedback', {
-          method:'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify(payload)
-        });
+  <script>
+    let allRoleplays = [];
+    let mediaRecorder;
+    let audioChunks = [];
+    let recordingStartTime = null;
+    let recordTimerInterval = null;
+
+    // Tabs
+    document.getElementById('tab-sessions').onclick = () => {
+      document.getElementById('content-sessions').style.display = '';
+      document.getElementById('content-record').style.display = 'none';
+      tabActive('sessions');
+    };
+    document.getElementById('tab-record').onclick = () => {
+      document.getElementById('content-sessions').style.display = 'none';
+      document.getElementById('content-record').style.display = '';
+      tabActive('record');
+    };
+    function tabActive(id) {
+      document.getElementById('tab-sessions').classList.toggle('active', id === 'sessions');
+      document.getElementById('tab-record').classList.toggle('active', id === 'record');
+    }
+
+    // Load & render
+    async function loadRoleplays() {
+      allRoleplays = await fetch('/roleplays').then(r => r.json());
+      populateFilterOptions();
+      renderTable(allRoleplays);
+    }
+    function populateFilterOptions() {
+      const sel = document.getElementById('filter-student');
+      const set = new Set();
+      allRoleplays.forEach(r => {
+        set.add(r.comprador);
+        set.add(r.vendedor);
+      });
+      sel.innerHTML = '<option value="all">All</option>';
+      set.forEach(s => sel.innerHTML += `<option value="${s}">${s}</option>`);
+    }
+    function renderTable(data) {
+      const tbody = document.querySelector('tbody');
+      tbody.innerHTML = '';
+      data.forEach(r => {
+        const total = r.costes.reduce((a, b) => a + b, 0).toFixed(2);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${r.comprador}</td>
+          <td>${r.vendedor}</td>
+          <td>${r.productos.join(', ')}</td>
+          <td>€${total}</td>
+          <td><audio controls src="${r.audio_url}"></audio></td>
+          <td class="editable" data-id="${r.id}" data-field="feedback">${r.feedback}</td>
+          <td class="editable" data-id="${r.id}" data-field="nota">${r.nota}</td>
+          <td>${new Date(r.timestamp).toLocaleString()}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+      makeEditable();
+    }
+
+    // Inline editing
+    function makeEditable() {
+      document.querySelectorAll('.editable').forEach(td => {
+        td.onclick = async () => {
+          const old = td.textContent;
+          const input = document.createElement(td.dataset.field === 'nota' ? 'input' : 'textarea');
+          input.value = old;
+          td.innerHTML = '';
+          td.appendChild(input);
+          input.focus();
+          input.onblur = async () => {
+            const val = input.value;
+            const payload = { id: td.dataset.id };
+            payload[td.dataset.field] = val;
+            const res = await fetch('/update_feedback', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.status === 'ok') {
+              td.textContent = val;
+            } else {
+              alert('Error updating field');
+              td.textContent = old;
+            }
+          };
+        };
+      });
+    }
+
+    // Filter
+    document.getElementById('filter-student').onchange = e => {
+      const v = e.target.value;
+      renderTable(v === 'all' ? allRoleplays : allRoleplays.filter(r => r.comprador === v || r.vendedor === v));
+    };
+
+    // Buttons
+    document.getElementById('refresh-roleplays').onclick = loadRoleplays;
+    document.getElementById('btn-backup').onclick = () => window.open('/backup', '_blank');
+    document.getElementById('btn-restart').onclick = async () => {
+      const res = await fetch('/restart_railway', { method: 'POST' });
+      alert((await res.json()).status === 'restarted' ? 'Railway restarted!' : 'Error');
+    };
+
+    // Form submit with audio blob or file
+    document.getElementById('roleplay-form').onsubmit = async e => {
+      e.preventDefault();
+      const form = e.target;
+
+      // Check for recorded audio blob
+      if (window.recordedAudioBlob) {
+        const fd = new FormData();
+        fd.append('comprador', form.comprador.value);
+        fd.append('vendedor', form.vendedor.value);
+        fd.append('productos', JSON.stringify(form.productos.value.split(',').map(s => s.trim())));
+        fd.append('costes', JSON.stringify(form.costes.value.split(',').map(s => parseFloat(s) || 0)));
+        fd.append('audio', window.recordedAudioBlob, 'recording.webm');
+
+        const res = await fetch('/upload', { method: 'POST', body: fd });
         const data = await res.json();
-        if(data.status==='ok'){
-          td.textContent = val;
+        if (data.status === 'ok') {
+          alert('Uploaded!');
+          form.reset();
+          window.recordedAudioBlob = null;
+          document.getElementById('audio-file').value = '';
+          updateRecordButtons(false);
+          loadRoleplays();
         } else {
-          alert('Error updating field');
-          td.textContent = old;
+          alert('Error uploading recording');
         }
-      };
+      } else if (form['audio'].files.length > 0) {
+        const fd = new FormData(form);
+        fd.set('productos', JSON.stringify(form.productos.value.split(',').map(s => s.trim())));
+        fd.set('costes', JSON.stringify(form.costes.value.split(',').map(s => parseFloat(s) || 0)));
+
+        const res = await fetch('/upload', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.status === 'ok') {
+          alert('Uploaded!');
+          form.reset();
+          loadRoleplays();
+        } else {
+          alert('Error uploading file');
+        }
+      } else {
+        alert('Please record or select an audio file.');
+      }
     };
-  });
-}
 
-// Filter
-document.getElementById('filter-student').onchange = e=>{
-  const v = e.target.value;
-  renderTable(v==='all'?allRoleplays:allRoleplays.filter(r=>r.comprador===v||r.vendedor===v));
-};
+    // Audio recorder controls
+    const btnRecord = document.getElementById('btn-record');
+    const btnStop = document.getElementById('btn-stop');
+    const btnCancel = document.getElementById('btn-cancel');
+    const recordTimer = document.getElementById('record-timer');
 
-// Buttons
-document.getElementById('refresh-roleplays').onclick = loadRoleplays;
+    function updateRecordButtons(started) {
+      btnRecord.disabled = started;
+      btnStop.disabled = !started;
+      btnCancel.disabled = !started;
+    }
 
-// Form submit with audio blob or file
-document.getElementById('roleplay-form').onsubmit = async e=>{
-  e.preventDefault();
-  const form = e.target;
+    function formatTime(seconds) {
+      const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+      const s = String(seconds % 60).padStart(2, '0');
+      return `${m}:${s}`;
+    }
 
-  if(window.recordedAudioBlob){
-    const fd = new FormData();
-    fd.append('comprador', form.comprador.value);
-    fd.append('vendedor', form.vendedor.value);
-    fd.append('productos', JSON.stringify(form.productos.value.split(',').map(s=>s.trim())));
-    fd.append('costes', JSON.stringify(form.costes.value.split(',').map(s=>parseFloat(s)||0)));
-    fd.append('audio', window.recordedAudioBlob, 'recording.webm');
-    const res = await fetch('/upload',{method:'POST',body:fd});
-    const data = await res.json();
-    if(data.status==='ok'){
-      alert('Uploaded!');
-      form.reset();
+    function startTimer() {
+      recordingStartTime = Date.now();
+      recordTimer.textContent = "00:00";
+      recordTimerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+        recordTimer.textContent = formatTime(elapsed);
+      }, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(recordTimerInterval);
+      recordTimer.textContent = "00:00";
+      recordingStartTime = null;
+    }
+
+    btnRecord.onclick = async () => {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("Your browser does not support audio recording.");
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = e => {
+          if (e.data.size > 0) audioChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          window.recordedAudioBlob = audioBlob;
+          document.getElementById('audio-file').value = '';
+          updateRecordButtons(false);
+          stopTimer();
+        };
+
+        mediaRecorder.start();
+        updateRecordButtons(true);
+        startTimer();
+
+      } catch (e) {
+        alert("Error accessing microphone: " + e.message);
+      }
+    };
+
+    btnStop.onclick = () => {
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+      }
+    };
+
+    btnCancel.onclick = () => {
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+      }
       window.recordedAudioBlob = null;
-      document.getElementById('audio-file').value = '';
-      updateRecordButtons(false);
-      loadRoleplays();
-    } else {
-      alert('Error uploading recording');
-    }
-  } else if(form['audio'].files.length > 0){
-    const fd = new FormData(form);
-    fd.set('productos', JSON.stringify(form.productos.value.split(',').map(s=>s.trim())));
-    fd.set('costes', JSON.stringify(form.costes.value.split(',').map(s=>parseFloat(s)||0)));
-    const res = await fetch('/upload',{method:'POST',body:fd});
-    const data = await res.json();
-    if(data.status==='ok'){
-      alert('Uploaded!');
-      form.reset();
-      loadRoleplays();
-    } else {
-      alert('Error uploading file');
-    }
-  } else {
-    alert('Please record or select an audio file.');
-  }
-};
-
-// Grabadora de audio
-const btnRecord = document.getElementById('btn-record');
-const btnStop = document.getElementById('btn-stop');
-const btnCancel = document.getElementById('btn-cancel');
-const recordTimer = document.getElementById('record-timer');
-
-function updateRecordButtons(started){
-  btnRecord.disabled = started;
-  btnStop.disabled = !started;
-  btnCancel.disabled = !started;
-}
-
-function formatTime(seconds){
-  const m = String(Math.floor(seconds/60)).padStart(2,'0');
-  const s = String(seconds%60).padStart(2,'0');
-  return `${m}:${s}`;
-}
-
-function startTimer(){
-  recordingStartTime = Date.now();
-  recordTimer.textContent = "00:00";
-  recordTimerInterval = setInterval(() => {
-    const elapsed = Math.floor((Date.now() - recordingStartTime)/1000);
-    recordTimer.textContent = formatTime(elapsed);
-  }, 1000);
-}
-
-function stopTimer(){
-  clearInterval(recordTimerInterval);
-  recordTimer.textContent = "00:00";
-  recordingStartTime = null;
-}
-
-btnRecord.onclick = async () => {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    alert("Your browser does not support audio recording.");
-    return;
-  }
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaRecorder = new MediaRecorder(stream);
-    audioChunks = [];
-    mediaRecorder.ondataavailable = e => {
-      if(e.data.size > 0) audioChunks.push(e.data);
-    };
-    mediaRecorder.onstop = () => {
-      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-      window.recordedAudioBlob = audioBlob;
       document.getElementById('audio-file').value = '';
       updateRecordButtons(false);
       stopTimer();
     };
-    mediaRecorder.start();
-    updateRecordButtons(true);
-    startTimer();
-  } catch (e) {
-    alert("Error accessing microphone: "+e.message);
-  }
-};
 
-btnStop.onclick = () => {
-  if(mediaRecorder && mediaRecorder.state === "recording") {
-    mediaRecorder.stop();
-  }
-};
-
-btnCancel.onclick = () => {
-  if(mediaRecorder && mediaRecorder.state === "recording") {
-    mediaRecorder.stop();
-  }
-  window.recordedAudioBlob = null;
-  document.getElementById('audio-file').value = '';
-  updateRecordButtons(false);
-  stopTimer();
-};
-
-// Init
-window.onload = ()=>{ loadRoleplays(); updateRecordButtons(false); };
-</script>
+    // Init
+    window.onload = () => {
+      loadRoleplays();
+      updateRecordButtons(false);
+    };
+  </script>
 </body>
+
 </html>

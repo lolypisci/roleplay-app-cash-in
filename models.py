@@ -6,12 +6,13 @@ Base = declarative_base()
 
 class Roleplay(Base):
     __tablename__ = "roleplays"
+
     id = Column(Integer, primary_key=True, index=True)
-    comprador = Column(String, index=True)
-    vendedor = Column(String, index=True)
-    productos = Column(String)  # Stored as JSON string
-    costes = Column(String)     # Stored as JSON string
-    audio_filename = Column(String)
+    comprador = Column(String, nullable=False)
+    vendedor = Column(String, nullable=False)
+    productos = Column(String, nullable=False)  # JSON serializado en string
+    costes = Column(String, nullable=False)     # JSON serializado en string
+    audio_filename = Column(String, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
-    feedback = Column(String, default="")
-    nota = Column(String, default="")
+    feedback = Column(String, nullable=True, default="")
+    nota = Column(String, nullable=True, default="")

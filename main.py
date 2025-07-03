@@ -2,7 +2,7 @@ import os
 import json
 import uuid
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends, Request
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
@@ -13,6 +13,7 @@ app = FastAPI()
 
 models.Base.metadata.create_all(bind=engine)
 
+# Montar carpeta static para servir logo, iconos, CSS, JS, etc.
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 def get_db():
@@ -107,6 +108,35 @@ async def get_audio(filename: str):
         ".mp3": "audio/mpeg"
     }.get(ext, "application/octet-stream")
     return FileResponse(path, media_type=media)
+
+@app.get("/uploads")
+def list_uploads():
+    UPLOADS_FOLDER = "uploads"
+    if not os.path.isdir(UPLOADS_FOLDER):
+        return JSONResponse(content=[], status_code=200)
+    files = []
+    for fname in os.listdir(UPLOADS_FOLDER):
+        if fname.lower().endswith((".wav", ".webm", ".mp3")):
+            path = os.path.join(UPLOADS_FOLDER, fname)
+            files.append({
+                "filename": fname,
+                "timestamp": datetime.fromtimestamp(os.path.getmtime(path)).isoformat()
+            })
+    files.sort(key=lambda x: x["timestamp"], reverse=True)
+    return JSONResponse(content=files)
+
+# Opcional: Endpoint para backup (comenta o elimina si no lo tienes implementado)
+@app.get("/backup")
+def create_backup():
+    # Aquí deberías poner la lógica para crear el backup de la base de datos o archivos
+    # Por ahora, solo devuelve un mensaje para que no de error
+    return JSONResponse({"status": "backup not implemented"})
+
+# Opcional: Endpoint para reiniciar Railway (comenta o elimina si no lo tienes implementado)
+@app.post("/restart_railway")
+def restart_railway():
+    # Aquí la lógica para reiniciar Railway, si la tienes implementada
+    return JSONResponse({"status": "restart not implemented"})
 
 @app.get("/")
 async def serve_index():
