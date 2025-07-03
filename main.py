@@ -97,7 +97,7 @@ async def update_feedback(request: Request, db: Session = Depends(get_db)):
 async def get_audio(filename: str):
     path = os.path.join("uploads", filename)
     if not os.path.isfile(path):
-        raise HTTPException(404)
+        raise HTTPException(status_code=404, detail="Audio file not found")
     ext = os.path.splitext(filename)[1].lower()
     media = {
         ".wav": "audio/wav",
@@ -125,7 +125,6 @@ def list_uploads():
 @app.get("/")
 async def serve_index():
     return FileResponse("static/index.html")
-
 
 if __name__ == "__main__":
     import uvicorn

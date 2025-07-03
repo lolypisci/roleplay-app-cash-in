@@ -85,9 +85,6 @@
       <div id="record-timer">00:00</div>
     </div>
 
-    <!-- Aquí pondremos el audio grabado como Blob para enviar -->
-    <input type="hidden" name="audio" id="audio-recorded" />
-
     <button type="submit" class="primary" style="margin-top:15px;">Submit Roleplay</button>
   </form>
 </div>
@@ -185,8 +182,7 @@ document.getElementById('filter-student').onchange = e=>{
 
 // Buttons
 document.getElementById('refresh-roleplays').onclick = loadRoleplays;
-document.getElementById('btn-backup').onclick = ()=>
-  window.open('/backup','_blank');
+document.getElementById('btn-backup').onclick = ()=> window.open('/backup','_blank');
 document.getElementById('btn-restart').onclick = async ()=>{
   const res = await fetch('/restart_railway',{method:'POST'});
   alert((await res.json()).status==='restarted'?'Railway restarted!':'Error');
@@ -215,7 +211,7 @@ document.getElementById('roleplay-form').onsubmit = async e=>{
       form.reset();
       window.recordedAudioBlob = null;
       document.getElementById('audio-file').value = '';
-      updateRecordButtons(true);
+      updateRecordButtons(false);
       loadRoleplays();
     } else {
       alert('Error uploading recording');
@@ -291,12 +287,8 @@ btnRecord.onclick = async () => {
       const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
       window.recordedAudioBlob = audioBlob;
 
-      // Poner el archivo en el input file para que el usuario vea que hay audio
-      // Como no se puede poner directamente en input[type=file], lo dejamos así y borramos input file para evitar conflicto
+      // Limpiar input file para evitar conflicto
       document.getElementById('audio-file').value = '';
-
-      // Opcional: mostrar reproducción para el usuario
-      // Si quieres que aparezca un reproductor de preview, se puede añadir aquí
 
       updateRecordButtons(false);
       stopTimer();

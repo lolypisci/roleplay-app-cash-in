@@ -1,4 +1,3 @@
-# models.py
 from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
@@ -10,8 +9,8 @@ class Roleplay(Base):
     id = Column(Integer, primary_key=True, index=True)
     comprador = Column(String, index=True)
     vendedor = Column(String, index=True)
-    productos = Column(String)
-    costes = Column(String)
+    productos = Column(String)  # Stored as JSON string
+    costes = Column(String)     # Stored as JSON string
     audio_filename = Column(String)
     timestamp = Column(DateTime, default=datetime.utcnow)
     feedback = Column(String, default="")
