@@ -22,6 +22,20 @@
     button.primary:hover { background:#1f6391; }
     form label{display:block;margin-top:10px;}
     form input, form textarea{width:100%;padding:6px; margin-top:4px; border:1px solid #ccc; border-radius:3px;}
+
+    /* Estilos para grabadora */
+    #recorder-controls {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    #record-timer {
+      font-weight: bold;
+      font-family: monospace;
+      min-width: 70px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -59,13 +73,32 @@
     <label>Seller Name:<input type="text" name="vendedor" required></label>
     <label>Products (comma separated):<input type="text" name="productos" required></label>
     <label>Costs (comma separated):<input type="text" name="costes" required></label>
-    <label>Audio File:<input type="file" name="audio" accept="audio/*" required></label>
-    <button type="submit" class="primary">Submit Roleplay</button>
+
+    <!-- Selector archivo tradicional -->
+    <label>Audio File (choose file or record):<input type="file" id="audio-file" name="audio" accept="audio/*"></label>
+
+    <!-- Grabadora integrada -->
+    <div id="recorder-controls">
+      <button type="button" id="btn-record" class="primary">Record</button>
+      <button type="button" id="btn-stop" class="primary" disabled>Stop</button>
+      <button type="button" id="btn-cancel" class="primary" disabled>Cancel</button>
+      <div id="record-timer">00:00</div>
+    </div>
+
+    <!-- Aquí pondremos el audio grabado como Blob para enviar -->
+    <input type="hidden" name="audio" id="audio-recorded" />
+
+    <button type="submit" class="primary" style="margin-top:15px;">Submit Roleplay</button>
   </form>
 </div>
 
 <script>
 let allRoleplays = [];
+let mediaRecorder;
+let audioChunks = [];
+let recordingStartTime = null;
+let recordTimerInterval = null;
+
 // Tabs
 document.getElementById('tab-sessions').onclick = () => {
   document.getElementById('content-sessions').style.display = '';
@@ -106,7 +139,7 @@ function renderTable(data){
       <td>€${total}</td>
       <td><audio controls src="${r.audio_url}"></audio></td>
       <td class="editable" data-id="${r.id}" data-field="feedback">${r.feedback}</td>
-      <td class="editable" data-id="${r.id}" data-field="score">${r.score}</td>
+      <td class="editable" data-id="${r.id}" data-field="nota">${r.nota}</td>
       <td>${new Date(r.timestamp).toLocaleString()}</td>
     `;
     tbody.appendChild(tr);
@@ -119,17 +152,26 @@ function makeEditable(){
   document.querySelectorAll('.editable').forEach(td=>{
     td.onclick = async ()=>{
       const old = td.textContent;
-      const input = document.createElement(td.dataset.field==='score'?'input':'textarea');
+      const input = document.createElement(td.dataset.field==='nota'?'input':'textarea');
       input.value = old;
       td.innerHTML = ''; td.appendChild(input);
       input.focus();
       input.onblur = async ()=>{
         const val = input.value;
-        await fetch(`/roleplays/${td.dataset.id}/feedback`, {
-          method:'PATCH',
-          body: new URLSearchParams({ [td.dataset.field]:val })
+        const payload = { id: td.dataset.id };
+        payload[td.dataset.field] = val;
+        const res = await fetch('/update_feedback', {
+          method:'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
         });
-        td.textContent = val;
+        const data = await res.json();
+        if(data.status==='ok'){
+          td.textContent = val;
+        } else {
+          alert('Error updating field');
+          td.textContent = old;
+        }
       };
     };
   });
@@ -150,21 +192,143 @@ document.getElementById('btn-restart').onclick = async ()=>{
   alert((await res.json()).status==='restarted'?'Railway restarted!':'Error');
 };
 
-// Form submit
+// Form submit with audio blob or file
 document.getElementById('roleplay-form').onsubmit = async e=>{
   e.preventDefault();
-  const f = new FormData(e.target);
-  f.set('productos', JSON.stringify(f.get('productos').split(',').map(s=>s.trim())));
-  f.set('costes', JSON.stringify(f.get('costes').split(',').map(s=>parseFloat(s)||0)));
-  const r = await fetch('/upload',{method:'POST',body:f});
-  if((await r.json()).status==='ok'){
-    alert('Uploaded!');
-    e.target.reset(); loadRoleplays();
-  } else alert('Error');
+  const form = e.target;
+
+  // Comprobar si hay audio grabado en blob
+  if(window.recordedAudioBlob){
+    // Si hay grabación, usarla y borrar input file para evitar conflicto
+    const fd = new FormData();
+    fd.append('comprador', form.comprador.value);
+    fd.append('vendedor', form.vendedor.value);
+    fd.append('productos', JSON.stringify(form.productos.value.split(',').map(s=>s.trim())));
+    fd.append('costes', JSON.stringify(form.costes.value.split(',').map(s=>parseFloat(s)||0)));
+
+    fd.append('audio', window.recordedAudioBlob, 'recording.webm');
+
+    const res = await fetch('/upload',{method:'POST',body:fd});
+    const data = await res.json();
+    if(data.status==='ok'){
+      alert('Uploaded!');
+      form.reset();
+      window.recordedAudioBlob = null;
+      document.getElementById('audio-file').value = '';
+      updateRecordButtons(true);
+      loadRoleplays();
+    } else {
+      alert('Error uploading recording');
+    }
+  } else if(form['audio'].files.length > 0){
+    // Si no hay grabación, pero sí archivo seleccionado
+    const fd = new FormData(form);
+    fd.set('productos', JSON.stringify(form.productos.value.split(',').map(s=>s.trim())));
+    fd.set('costes', JSON.stringify(form.costes.value.split(',').map(s=>parseFloat(s)||0)));
+
+    const res = await fetch('/upload',{method:'POST',body:fd});
+    const data = await res.json();
+    if(data.status==='ok'){
+      alert('Uploaded!');
+      form.reset();
+      loadRoleplays();
+    } else {
+      alert('Error uploading file');
+    }
+  } else {
+    alert('Please record or select an audio file.');
+  }
+};
+
+// Grabadora de audio
+const btnRecord = document.getElementById('btn-record');
+const btnStop = document.getElementById('btn-stop');
+const btnCancel = document.getElementById('btn-cancel');
+const recordTimer = document.getElementById('record-timer');
+
+function updateRecordButtons(started){
+  btnRecord.disabled = started;
+  btnStop.disabled = !started;
+  btnCancel.disabled = !started;
+}
+
+function formatTime(seconds){
+  const m = String(Math.floor(seconds/60)).padStart(2,'0');
+  const s = String(seconds%60).padStart(2,'0');
+  return `${m}:${s}`;
+}
+
+function startTimer(){
+  recordingStartTime = Date.now();
+  recordTimer.textContent = "00:00";
+  recordTimerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - recordingStartTime)/1000);
+    recordTimer.textContent = formatTime(elapsed);
+  }, 1000);
+}
+
+function stopTimer(){
+  clearInterval(recordTimerInterval);
+  recordTimer.textContent = "00:00";
+  recordingStartTime = null;
+}
+
+btnRecord.onclick = async () => {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert("Your browser does not support audio recording.");
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
+
+    mediaRecorder.ondataavailable = e => {
+      if(e.data.size > 0) audioChunks.push(e.data);
+    };
+
+    mediaRecorder.onstop = () => {
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      window.recordedAudioBlob = audioBlob;
+
+      // Poner el archivo en el input file para que el usuario vea que hay audio
+      // Como no se puede poner directamente en input[type=file], lo dejamos así y borramos input file para evitar conflicto
+      document.getElementById('audio-file').value = '';
+
+      // Opcional: mostrar reproducción para el usuario
+      // Si quieres que aparezca un reproductor de preview, se puede añadir aquí
+
+      updateRecordButtons(false);
+      stopTimer();
+    };
+
+    mediaRecorder.start();
+    updateRecordButtons(true);
+    startTimer();
+
+  } catch (e) {
+    alert("Error accessing microphone: "+e.message);
+  }
+};
+
+btnStop.onclick = () => {
+  if(mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.stop();
+  }
+};
+
+btnCancel.onclick = () => {
+  if(mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.stop();
+  }
+  window.recordedAudioBlob = null;
+  document.getElementById('audio-file').value = '';
+  updateRecordButtons(false);
+  stopTimer();
 };
 
 // Init
-window.onload = ()=>{ loadRoleplays(); };
+window.onload = ()=>{ loadRoleplays(); updateRecordButtons(false); };
 </script>
 </body>
 </html>
