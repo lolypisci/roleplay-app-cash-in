@@ -1,7 +1,8 @@
+# main.py
 import os
 import json
 import uuid
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends, Request
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -9,15 +10,10 @@ from database import SessionLocal, engine
 import models
 from datetime import datetime
 
-def log_working_dir():
-    print(f"[Startup] Working directory: {os.getcwd()}")
+app = FastAPI()
 
-app = FastAPI(on_startup=[log_working_dir])
-
-# Crear tablas si no existen
 models.Base.metadata.create_all(bind=engine)
 
-# Montar carpeta static/
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 def get_db():
@@ -78,9 +74,25 @@ def list_roleplays(db: Session = Depends(get_db)):
             "productos": productos,
             "costes": costes,
             "audio_url": f"/audio/{r.audio_filename}",
-            "timestamp": r.timestamp.isoformat()
+            "timestamp": r.timestamp.isoformat(),
+            "feedback": r.feedback or "",
+            "nota": r.nota or ""
         })
     return out
+
+@app.post("/update_feedback")
+async def update_feedback(request: Request, db: Session = Depends(get_db)):
+    data = await request.json()
+    roleplay_id = data.get("id")
+    feedback = data.get("feedback", "")
+    nota = data.get("nota", "")
+    rp = db.query(models.Roleplay).filter(models.Roleplay.id == roleplay_id).first()
+    if rp:
+        rp.feedback = feedback
+        rp.nota = nota
+        db.commit()
+        return {"status": "ok"}
+    return {"status": "error", "message": "Roleplay not found"}
 
 @app.get("/audio/{filename}")
 async def get_audio(filename: str):
@@ -100,7 +112,6 @@ def list_uploads():
     UPLOADS_FOLDER = "uploads"
     if not os.path.isdir(UPLOADS_FOLDER):
         return JSONResponse(content=[], status_code=200)
-
     files = []
     for fname in os.listdir(UPLOADS_FOLDER):
         if fname.lower().endswith((".wav", ".webm", ".mp3")):
@@ -109,16 +120,9 @@ def list_uploads():
                 "filename": fname,
                 "timestamp": datetime.fromtimestamp(os.path.getmtime(path)).isoformat()
             })
-
-    # Ordenar por fecha descendente (más reciente primero)
     files.sort(key=lambda x: x["timestamp"], reverse=True)
-
     return JSONResponse(content=files)
 
 @app.get("/")
 async def serve_index():
     return FileResponse("static/index.html")
-
-@app.get("/student")
-async def serve_student():
-    return FileResponse("static/student.html")

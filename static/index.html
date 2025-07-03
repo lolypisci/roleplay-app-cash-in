@@ -1,232 +1,170 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Teacher View - Roleplay Archive</title>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
-    background-color: #f9f9f9;
-    color: #333;
-  }
-  h1, h2 {
-    color: #2c3e50;
-  }
-  label, select, button {
-    font-size: 1rem;
-    margin-top: 10px;
-  }
-  table {
-    border-collapse: collapse;
-    width: 100%;
-    margin-top: 10px;
-    background-color: white;
-    box-shadow: 0 0 5px #ccc;
-  }
-  th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-  }
-  th {
-    background-color: #2980b9;
-    color: white;
-  }
-  audio {
-    width: 150px;
-  }
-  button {
-    cursor: pointer;
-    padding: 6px 12px;
-    margin-top: 10px;
-    background-color: #2980b9;
-    color: white;
-    border: none;
-    border-radius: 3px;
-  }
-  button:hover {
-    background-color: #1f6391;
-  }
-  .section {
-    margin-top: 30px;
-  }
-</style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Rolefy – Teacher View</title>
+  <link rel="icon" href="icon.ico"/>
+  <style>
+    body { font-family: Arial, sans-serif; margin:20px; background:#f4f6f8; color:#333; }
+    header { display:flex; align-items:center; gap:10px; }
+    header img { height:40px; }
+    header h1 { margin:0; font-size:1.8rem; }
+    .tabs { margin-top:20px; }
+    .tabs button { padding:10px 20px; margin-right:5px; border:none; background:#ddd; cursor:pointer; }
+    .tabs button.active { background:#2980b9; color:#fff;}
+    .tab-content { margin-top:20px; }
+    table { width:100%; border-collapse:collapse; background:#fff; box-shadow:0 0 5px rgba(0,0,0,0.1);}
+    th,td{padding:8px;border:1px solid #e0e0e0;text-align:left;}
+    th {background:#2980b9;color:#fff;}
+    td.editable:hover {background:#f0f8ff;cursor:pointer;}
+    button.primary { background:#2980b9;color:white;border:none;padding:8px 12px;border-radius:3px;cursor:pointer;}
+    button.primary:hover { background:#1f6391; }
+    form label{display:block;margin-top:10px;}
+    form input, form textarea{width:100%;padding:6px; margin-top:4px; border:1px solid #ccc; border-radius:3px;}
+  </style>
 </head>
 <body>
+<header>
+  <img src="logo.png" alt="Rolefy Logo"/>
+  <h1>Rolefy – Teacher View</h1>
+</header>
 
-<h1>Saved Sessions</h1>
-
-<label for="filter-student">Filter by Student:</label>
-<select id="filter-student">
-  <option value="all">All</option>
-</select>
-<button id="refresh-roleplays">Refresh Sessions</button>
-
-<table border="1" id="roleplays-table" style="margin-top: 10px;">
-  <thead>
-    <tr>
-      <th>Buyer</th>
-      <th>Seller</th>
-      <th>Purchased Items</th>
-      <th>Total Cost</th>
-      <th>Audio</th>
-      <th>Timestamp</th>
-    </tr>
-  </thead>
-  <tbody>
-  </tbody>
-</table>
-
-<div class="section">
-  <h2>Record a New Roleplay</h2>
-  <form id="roleplay-form">
-    <label for="comprador">Buyer Name:</label><br/>
-    <input type="text" id="comprador" name="comprador" required/><br/>
-    <label for="vendedor">Seller Name:</label><br/>
-    <input type="text" id="vendedor" name="vendedor" required/><br/>
-    <label for="productos">Products (comma separated):</label><br/>
-    <input type="text" id="productos" name="productos" required/><br/>
-    <label for="costes">Costs (comma separated):</label><br/>
-    <input type="text" id="costes" name="costes" required/><br/>
-    <label for="audio">Audio File:</label><br/>
-    <input type="file" id="audio" name="audio" accept="audio/*" required/><br/>
-    <button type="submit">Submit Roleplay</button>
-  </form>
+<div class="tabs">
+  <button id="tab-sessions" class="active">Saved Sessions</button>
+  <button id="tab-record">Record Roleplay</button>
 </div>
 
-<div class="section">
-  <h2>Uploads History</h2>
-  <button id="refresh-uploads">Refresh Uploads</button>
-  <ul id="uploads-list"></ul>
+<div id="content-sessions" class="tab-content">
+  <div style="margin-bottom:10px;">
+    <label>Filter by Student:
+      <select id="filter-student"><option value="all">All</option></select>
+    </label>
+    <button id="refresh-roleplays" class="primary">Refresh</button>
+    <button id="btn-backup" class="primary">Create Backup</button>
+    <button id="btn-restart" class="primary">Restart Railway</button>
+  </div>
+  <table>
+    <thead>
+      <tr><th>Buyer</th><th>Seller</th><th>Items</th><th>Total (€)</th>
+          <th>Audio</th><th>Feedback</th><th>Score</th><th>Timestamp</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<div id="content-record" class="tab-content" style="display:none;">
+  <form id="roleplay-form">
+    <label>Buyer Name:<input type="text" name="comprador" required></label>
+    <label>Seller Name:<input type="text" name="vendedor" required></label>
+    <label>Products (comma separated):<input type="text" name="productos" required></label>
+    <label>Costs (comma separated):<input type="text" name="costes" required></label>
+    <label>Audio File:<input type="file" name="audio" accept="audio/*" required></label>
+    <button type="submit" class="primary">Submit Roleplay</button>
+  </form>
 </div>
 
 <script>
 let allRoleplays = [];
-
-function populateFilterOptions(roleplays) {
-  const select = document.getElementById('filter-student');
-  const studentsSet = new Set();
-
-  roleplays.forEach(r => {
-    studentsSet.add(r.comprador);
-    studentsSet.add(r.vendedor);
-  });
-
-  // Clear options except "All"
-  while (select.options.length > 1) {
-    select.remove(1);
-  }
-
-  studentsSet.forEach(student => {
-    const option = document.createElement('option');
-    option.value = student;
-    option.textContent = student;
-    select.appendChild(option);
-  });
+// Tabs
+document.getElementById('tab-sessions').onclick = () => {
+  document.getElementById('content-sessions').style.display = '';
+  document.getElementById('content-record').style.display = 'none';
+  tabActive('sessions');
+};
+document.getElementById('tab-record').onclick = () => {
+  document.getElementById('content-sessions').style.display = 'none';
+  document.getElementById('content-record').style.display = '';
+  tabActive('record');
+};
+function tabActive(id){
+  document.getElementById('tab-sessions').classList.toggle('active', id==='sessions');
+  document.getElementById('tab-record').classList.toggle('active', id==='record');
 }
 
-function renderTable(filteredRoleplays) {
-  const tbody = document.querySelector("#roleplays-table tbody");
-  tbody.innerHTML = "";
-
-  filteredRoleplays.forEach(r => {
-    const totalCost = r.costes.reduce((a, b) => a + b, 0).toFixed(2);
-    const productosHTML = r.productos.join(", ");
-
-    const tr = document.createElement("tr");
+// Load & render
+async function loadRoleplays(){
+  allRoleplays = await fetch('/roleplays').then(r=>r.json());
+  populateFilterOptions(); renderTable(allRoleplays);
+}
+function populateFilterOptions(){
+  const sel = document.getElementById('filter-student');
+  const set = new Set();
+  allRoleplays.forEach(r=>{ set.add(r.comprador); set.add(r.vendedor); });
+  sel.innerHTML = '<option value="all">All</option>';
+  set.forEach(s=> sel.innerHTML += `<option value="${s}">${s}</option>`);
+}
+function renderTable(data){
+  const tbody = document.querySelector('tbody'); tbody.innerHTML = '';
+  data.forEach(r=>{
+    const total = r.costes.reduce((a,b)=>a+b,0).toFixed(2);
+    const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${r.comprador}</td>
       <td>${r.vendedor}</td>
-      <td>${productosHTML}</td>
-      <td>€${totalCost}</td>
+      <td>${r.productos.join(', ')}</td>
+      <td>€${total}</td>
       <td><audio controls src="${r.audio_url}"></audio></td>
+      <td class="editable" data-id="${r.id}" data-field="feedback">${r.feedback}</td>
+      <td class="editable" data-id="${r.id}" data-field="score">${r.score}</td>
       <td>${new Date(r.timestamp).toLocaleString()}</td>
     `;
     tbody.appendChild(tr);
   });
+  makeEditable();
 }
 
-function loadRoleplays() {
-  fetch('/roleplays')
-    .then(response => response.json())
-    .then(data => {
-      allRoleplays = data;
-      populateFilterOptions(allRoleplays);
-      renderTable(allRoleplays);
-    })
-    .catch(() => alert('Failed to load roleplays'));
+// Inline editing
+function makeEditable(){
+  document.querySelectorAll('.editable').forEach(td=>{
+    td.onclick = async ()=>{
+      const old = td.textContent;
+      const input = document.createElement(td.dataset.field==='score'?'input':'textarea');
+      input.value = old;
+      td.innerHTML = ''; td.appendChild(input);
+      input.focus();
+      input.onblur = async ()=>{
+        const val = input.value;
+        await fetch(`/roleplays/${td.dataset.id}/feedback`, {
+          method:'PATCH',
+          body: new URLSearchParams({ [td.dataset.field]:val })
+        });
+        td.textContent = val;
+      };
+    };
+  });
 }
 
-document.getElementById('filter-student').addEventListener('change', (e) => {
-  const selected = e.target.value;
-  if (selected === 'all') {
-    renderTable(allRoleplays);
-  } else {
-    const filtered = allRoleplays.filter(r => r.comprador === selected || r.vendedor === selected);
-    renderTable(filtered);
-  }
-});
-
-document.getElementById('refresh-roleplays').addEventListener('click', loadRoleplays);
-
-// Form submission to upload roleplay
-document.getElementById('roleplay-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const form = e.target;
-  const formData = new FormData(form);
-
-  // Convert comma separated to JSON strings for products and costs
-  formData.set('productos', JSON.stringify(formData.get('productos').split(',').map(p => p.trim())));
-  formData.set('costes', JSON.stringify(formData.get('costes').split(',').map(c => parseFloat(c.trim()) || 0)));
-
-  try {
-    const res = await fetch('/upload', {
-      method: 'POST',
-      body: formData
-    });
-    const data = await res.json();
-    if (data.status === 'ok') {
-      alert('Roleplay uploaded successfully!');
-      form.reset();
-      loadRoleplays();
-    } else {
-      alert('Failed to upload roleplay');
-    }
-  } catch {
-    alert('Error uploading roleplay');
-  }
-});
-
-// Uploads history
-document.getElementById('refresh-uploads').addEventListener('click', () => {
-  fetch('/uploads')
-    .then(res => res.json())
-    .then(files => {
-      const ul = document.getElementById('uploads-list');
-      ul.innerHTML = "";
-      if (files.length === 0) {
-        ul.innerHTML = "<li>No uploads found</li>";
-        return;
-      }
-      files.forEach(f => {
-        const li = document.createElement('li');
-        li.textContent = `${f.filename} - ${new Date(f.timestamp).toLocaleString()}`;
-        ul.appendChild(li);
-      });
-    })
-    .catch(() => {
-      alert("Failed to load uploads.");
-    });
-});
-
-// Initial load
-window.onload = () => {
-  loadRoleplays();
-  document.getElementById('refresh-uploads').click();
+// Filter
+document.getElementById('filter-student').onchange = e=>{
+  const v = e.target.value;
+  renderTable(v==='all'?allRoleplays:allRoleplays.filter(r=>r.comprador===v||r.vendedor===v));
 };
-</script>
 
+// Buttons
+document.getElementById('refresh-roleplays').onclick = loadRoleplays;
+document.getElementById('btn-backup').onclick = ()=>
+  window.open('/backup','_blank');
+document.getElementById('btn-restart').onclick = async ()=>{
+  const res = await fetch('/restart_railway',{method:'POST'});
+  alert((await res.json()).status==='restarted'?'Railway restarted!':'Error');
+};
+
+// Form submit
+document.getElementById('roleplay-form').onsubmit = async e=>{
+  e.preventDefault();
+  const f = new FormData(e.target);
+  f.set('productos', JSON.stringify(f.get('productos').split(',').map(s=>s.trim())));
+  f.set('costes', JSON.stringify(f.get('costes').split(',').map(s=>parseFloat(s)||0)));
+  const r = await fetch('/upload',{method:'POST',body:f});
+  if((await r.json()).status==='ok'){
+    alert('Uploaded!');
+    e.target.reset(); loadRoleplays();
+  } else alert('Error');
+};
+
+// Init
+window.onload = ()=>{ loadRoleplays(); };
+</script>
 </body>
 </html>

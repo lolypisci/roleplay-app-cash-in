@@ -3,3 +3,8 @@ uvicorn
 sqlalchemy
 python-multipart
 aiofiles
+requests
+python-dotenv
+Pillow
+sounddevice
+numpy
