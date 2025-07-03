@@ -26,7 +26,6 @@ def get_backend_url():
         else:
             raise ValueError("Empty backend_url in config")
     except Exception:
-        # Si no puede obtener de internet, pedir al usuario con diálogo TK
         root = tk.Tk()
         root.withdraw()
         url = simpledialog.askstring("Backend URL", "No se pudo obtener la URL del backend.\nIntroduce la URL del backend Rolefy:", initialvalue=DEFAULT_BACKEND)
@@ -211,7 +210,8 @@ class App:
             font = ImageFont.load_default()
 
         y = 10
-        line_height = font.getsize("Text")[1] + 5
+        bbox = draw.textbbox((0, 0), "Text", font=font)
+        line_height = bbox[3] - bbox[1] + 5
 
         draw.text((10, y), "Rolefy Receipt", font=font, fill="black")
         y += line_height
@@ -221,14 +221,14 @@ class App:
         draw.text((10, y), f"Seller: {self.eseller.get()}", font=font, fill="black")
         y += line_height
 
-        draw.line((10, y, w-10, y), fill="black")
+        draw.line((10, y, w - 10, y), fill="black")
         y += 5
 
         for itm, c in zip(items, costs):
             draw.text((10, y), f"{itm}: €{c:.2f}", font=font, fill="black")
             y += line_height
 
-        draw.line((10, y, w-10, y), fill="black")
+        draw.line((10, y, w - 10, y), fill="black")
         y += 5
 
         draw.text((10, y), f"Total: €{total:.2f}", font=font, fill="black")
@@ -245,6 +245,7 @@ class App:
             messagebox.showerror("Save Error", f"No se pudo guardar el recibo:\n{e}")
             return
 
+        # Intentar abrir el archivo automáticamente según SO
         try:
             if sys.platform.startswith('darwin'):
                 subprocess.call(('open', path))
