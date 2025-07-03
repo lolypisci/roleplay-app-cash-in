@@ -40,7 +40,7 @@
 </head>
 <body>
 <header>
-  <img src="logo.png" alt="Rolefy Logo"/>
+  <img src="/static/logo.png" alt="Rolefy Logo"/>
   <h1>Rolefy – Teacher View</h1>
 </header>
 
@@ -201,7 +201,6 @@ document.getElementById('roleplay-form').onsubmit = async e=>{
     fd.append('vendedor', form.vendedor.value);
     fd.append('productos', JSON.stringify(form.productos.value.split(',').map(s=>s.trim())));
     fd.append('costes', JSON.stringify(form.costes.value.split(',').map(s=>parseFloat(s)||0)));
-
     fd.append('audio', window.recordedAudioBlob, 'recording.webm');
 
     const res = await fetch('/upload',{method:'POST',body:fd});
@@ -322,5 +321,6 @@ btnCancel.onclick = () => {
 // Init
 window.onload = ()=>{ loadRoleplays(); updateRecordButtons(false); };
 </script>
+
 </body>
 </html>
