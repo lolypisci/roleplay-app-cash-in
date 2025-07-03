@@ -1,6 +1,3 @@
-import os
-import sys
-import subprocess
 import sounddevice as sd
 import numpy as np
 import wave
@@ -12,6 +9,9 @@ import io
 import json
 import requests
 from datetime import datetime
+import os
+import sys
+import subprocess
 
 # Config
 CONFIG_URL = "https://raw.githubusercontent.com/lolypisci/roleplay-app-cash-in/main/config.json"
@@ -26,6 +26,7 @@ def get_backend_url():
         else:
             raise ValueError("Empty backend_url in config")
     except Exception:
+        # Si no puede obtener de internet, pedir al usuario con diálogo TK
         root = tk.Tk()
         root.withdraw()
         url = simpledialog.askstring("Backend URL", "No se pudo obtener la URL del backend.\nIntroduce la URL del backend Rolefy:", initialvalue=DEFAULT_BACKEND)
@@ -200,19 +201,37 @@ class App:
 
     def show_receipt(self, items, costs):
         total = sum(costs)
-        w, h = 400, 30 + 20 * (len(items) + 3)
+        w, h = 400, 40 + 25 * (len(items) + 3)
         img = Image.new("RGB", (w, h), "white")
         draw = ImageDraw.Draw(img)
-        font = ImageFont.load_default()
+
+        try:
+            font = ImageFont.truetype("arial.ttf", 16)
+        except:
+            font = ImageFont.load_default()
+
         y = 10
-        draw.text((10, y), "Rolefy Receipt", font=font)
-        y += 20
-        draw.text((10, y), f"Buyer: {self.ebuyer.get()}, Seller: {self.eseller.get()}", font=font)
-        y += 20
+        line_height = font.getsize("Text")[1] + 5
+
+        draw.text((10, y), "Rolefy Receipt", font=font, fill="black")
+        y += line_height
+
+        draw.text((10, y), f"Buyer: {self.ebuyer.get()}", font=font, fill="black")
+        y += line_height
+        draw.text((10, y), f"Seller: {self.eseller.get()}", font=font, fill="black")
+        y += line_height
+
+        draw.line((10, y, w-10, y), fill="black")
+        y += 5
+
         for itm, c in zip(items, costs):
-            draw.text((10, y), f"{itm}: €{c:.2f}", font=font)
-            y += 20
-        draw.text((10, y), f"Total: €{total:.2f}", font=font)
+            draw.text((10, y), f"{itm}: €{c:.2f}", font=font, fill="black")
+            y += line_height
+
+        draw.line((10, y, w-10, y), fill="black")
+        y += 5
+
+        draw.text((10, y), f"Total: €{total:.2f}", font=font, fill="black")
 
         folder = "Receipts"
         os.makedirs(folder, exist_ok=True)
