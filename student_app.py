@@ -3,8 +3,9 @@ import numpy as np
 import wave
 import threading
 import tkinter as tk
-from tkinter import messagebox, filedialog, simpledialog
-from PIL import Image, ImageDraw, ImageFont
+from tkinter import messagebox, simpledialog
+from tkinter import filedialog
+from PIL import Image, ImageDraw, ImageFont, ImageTk
 import io
 import json
 import requests
@@ -16,6 +17,7 @@ import subprocess
 # Config
 CONFIG_URL = "https://raw.githubusercontent.com/lolypisci/roleplay-app-cash-in/main/config.json"
 DEFAULT_BACKEND = "http://localhost:8000"  # fallback local URL
+LOGO_PATH = os.path.join("static", "logo.png")
 
 def get_backend_url():
     try:
@@ -75,38 +77,64 @@ class App:
     def __init__(self, root):
         self.root = root
         root.title("Rolefy – Student")
+        root.configure(bg="#f0f4f8")
+        root.geometry("420x480")
+        root.resizable(False, False)
 
-        # UI Layout
-        tk.Label(root, text="Buyer:").grid(row=0, column=0, sticky="e")
-        self.ebuyer = tk.Entry(root, width=30)
-        self.ebuyer.grid(row=0, column=1, padx=5, pady=2)
+        # Logo arriba centrado
+        self.logo_img = None
+        if os.path.isfile(LOGO_PATH):
+            try:
+                logo_raw = Image.open(LOGO_PATH)
+                logo_raw = logo_raw.resize((120, 60), Image.ANTIALIAS)
+                self.logo_img = ImageTk.PhotoImage(logo_raw)
+                logo_label = tk.Label(root, image=self.logo_img, bg="#f0f4f8")
+                logo_label.grid(row=0, column=0, columnspan=2, pady=(10, 20))
+            except Exception as e:
+                print("No se pudo cargar logo:", e)
 
-        tk.Label(root, text="Seller:").grid(row=1, column=0, sticky="e")
-        self.eseller = tk.Entry(root, width=30)
-        self.eseller.grid(row=1, column=1, padx=5, pady=2)
+        # Estilos comunes
+        label_style = {"bg": "#f0f4f8", "font": ("Segoe UI", 11, "bold"), "anchor": "w"}
+        entry_style = {"font": ("Segoe UI", 11), "bd": 2, "relief": "groove"}
+        text_style = {"font": ("Segoe UI", 11), "bd": 2, "relief": "groove"}
 
-        tk.Label(root, text="Items (one per line):").grid(row=2, column=0, sticky="ne")
-        self.tp = tk.Text(root, height=6, width=30)
-        self.tp.grid(row=2, column=1, padx=5, pady=2)
+        # Buyer
+        tk.Label(root, text="Buyer:", **label_style).grid(row=1, column=0, sticky="w", padx=20)
+        self.ebuyer = tk.Entry(root, width=30, **entry_style)
+        self.ebuyer.grid(row=1, column=1, padx=20, pady=5)
 
-        tk.Label(root, text="Costs (one per line):").grid(row=3, column=0, sticky="ne")
-        self.tc = tk.Text(root, height=6, width=30)
-        self.tc.grid(row=3, column=1, padx=5, pady=2)
+        # Seller
+        tk.Label(root, text="Seller:", **label_style).grid(row=2, column=0, sticky="w", padx=20)
+        self.eseller = tk.Entry(root, width=30, **entry_style)
+        self.eseller.grid(row=2, column=1, padx=20, pady=5)
 
-        self.bt_start = tk.Button(root, text="Start Recording", command=self.start_recording)
-        self.bt_start.grid(row=4, column=0, pady=10)
+        # Items
+        tk.Label(root, text="Items (one per line):", **label_style).grid(row=3, column=0, sticky="nw", padx=20)
+        self.tp = tk.Text(root, height=6, width=30, **text_style)
+        self.tp.grid(row=3, column=1, padx=20, pady=5)
 
-        self.bt_stop = tk.Button(root, text="Stop Recording", command=self.stop_recording, state='disabled')
-        self.bt_stop.grid(row=4, column=1, pady=10, sticky="w")
+        # Costs
+        tk.Label(root, text="Costs (one per line):", **label_style).grid(row=4, column=0, sticky="nw", padx=20)
+        self.tc = tk.Text(root, height=6, width=30, **text_style)
+        self.tc.grid(row=4, column=1, padx=20, pady=5)
 
-        self.bt_submit = tk.Button(root, text="Submit", command=self.submit, state='disabled')
-        self.bt_submit.grid(row=5, column=0, columnspan=2, pady=10)
+        # Botones con colores y hover (básico)
+        self.bt_start = tk.Button(root, text="Start Recording", command=self.start_recording, bg="#4CAF50", fg="white", activebackground="#45a049", font=("Segoe UI", 12, "bold"), relief="flat")
+        self.bt_start.grid(row=5, column=0, pady=15, padx=20, sticky="ew")
 
-        self.status_lbl = tk.Label(root, text="", fg="blue")
-        self.status_lbl.grid(row=6, column=0, columnspan=2)
+        self.bt_stop = tk.Button(root, text="Stop Recording", command=self.stop_recording, state='disabled', bg="#f44336", fg="white", activebackground="#da190b", font=("Segoe UI", 12, "bold"), relief="flat")
+        self.bt_stop.grid(row=5, column=1, pady=15, padx=20, sticky="ew")
 
-        self.timer_lbl = tk.Label(root, text="", fg="green")
-        self.timer_lbl.grid(row=7, column=0, columnspan=2)
+        self.bt_submit = tk.Button(root, text="Submit", command=self.submit, state='disabled', bg="#2196F3", fg="white", activebackground="#0b7dda", font=("Segoe UI", 12, "bold"), relief="flat")
+        self.bt_submit.grid(row=6, column=0, columnspan=2, pady=10, padx=50, sticky="ew")
+
+        # Status label
+        self.status_lbl = tk.Label(root, text="", fg="#333", bg="#f0f4f8", font=("Segoe UI", 10, "italic"))
+        self.status_lbl.grid(row=7, column=0, columnspan=2)
+
+        # Timer label
+        self.timer_lbl = tk.Label(root, text="", fg="#666", bg="#f0f4f8", font=("Segoe UI", 10))
+        self.timer_lbl.grid(row=8, column=0, columnspan=2)
 
         self.recorder = Recorder()
         self.audio_data = None
@@ -119,7 +147,7 @@ class App:
             return
         self.audio_data = None
         self.recording_seconds = 0
-        self.status_lbl.config(text="Recording...")
+        self.status_lbl.config(text="Recording...", fg="#4CAF50")
         self.timer_lbl.config(text="00:00")
         self.bt_start.config(state='disabled')
         self.bt_stop.config(state='normal')
@@ -140,12 +168,12 @@ class App:
         data = self.recorder.stop()
         if data is None:
             messagebox.showwarning("No audio", "No se detectó audio grabado.")
-            self.status_lbl.config(text="")
+            self.status_lbl.config(text="", fg="#333")
             self.bt_start.config(state='normal')
             self.bt_stop.config(state='disabled')
             return
         self.audio_data = data
-        self.status_lbl.config(text="Recording stopped.")
+        self.status_lbl.config(text="Recording stopped.", fg="#2196F3")
         self.bt_start.config(state='normal')
         self.bt_stop.config(state='disabled')
         self.bt_submit.config(state='normal')
@@ -167,7 +195,7 @@ class App:
             messagebox.showwarning("Error", "No hay audio para enviar.")
             return
 
-        self.status_lbl.config(text="Uploading...")
+        self.status_lbl.config(text="Uploading...", fg="#2196F3")
         self.bt_submit.config(state='disabled')
         self.bt_start.config(state='disabled')
 
@@ -184,14 +212,14 @@ class App:
             try:
                 response = requests.post(BACKEND + "/upload", data=data, files=files, timeout=30)
                 if response.status_code == 200 and response.json().get("status") == "ok":
-                    self.status_lbl.config(text="Upload successful!")
+                    self.status_lbl.config(text="Upload successful!", fg="#4CAF50")
                     self.show_receipt(items, costs)
                     self.reset()
                 else:
                     raise Exception(f"Server error: {response.text}")
             except Exception as e:
                 messagebox.showerror("Upload Error", str(e))
-                self.status_lbl.config(text="Upload failed.")
+                self.status_lbl.config(text="Upload failed.", fg="#f44336")
             finally:
                 self.bt_submit.config(state='normal')
                 self.bt_start.config(state='normal')
@@ -200,39 +228,56 @@ class App:
 
     def show_receipt(self, items, costs):
         total = sum(costs)
-        w, h = 400, 40 + 25 * (len(items) + 3)
+        w, h = 450, 50 + 30 * (len(items) + 4)
         img = Image.new("RGB", (w, h), "white")
         draw = ImageDraw.Draw(img)
 
+        # Fuente elegante y tamaño
         try:
-            font = ImageFont.truetype("arial.ttf", 16)
+            font_title = ImageFont.truetype("arialbd.ttf", 22)
+            font_subtitle = ImageFont.truetype("arial.ttf", 14)
+            font_regular = ImageFont.truetype("arial.ttf", 16)
         except:
-            font = ImageFont.load_default()
+            font_title = ImageFont.load_default()
+            font_subtitle = ImageFont.load_default()
+            font_regular = ImageFont.load_default()
 
-        y = 10
-        bbox = draw.textbbox((0, 0), "Text", font=font)
-        line_height = bbox[3] - bbox[1] + 5
+        # Color principal
+        main_color = (33, 150, 243)  # azul intenso
 
-        draw.text((10, y), "Rolefy Receipt", font=font, fill="black")
-        y += line_height
+        # Logo (si existe)
+        if os.path.isfile(LOGO_PATH):
+            try:
+                logo = Image.open(LOGO_PATH)
+                logo.thumbnail((80, 40), Image.ANTIALIAS)
+                img.paste(logo, (15, 10), logo.convert("RGBA"))
+            except Exception as e:
+                print("No se pudo pegar logo en recibo:", e)
 
-        draw.text((10, y), f"Buyer: {self.ebuyer.get()}", font=font, fill="black")
-        y += line_height
-        draw.text((10, y), f"Seller: {self.eseller.get()}", font=font, fill="black")
-        y += line_height
+        x_text_start = 110
+        y = 15
 
-        draw.line((10, y, w - 10, y), fill="black")
-        y += 5
+        draw.text((x_text_start, y), "Rolefy Receipt", font=font_title, fill=main_color)
+        y += 35
+        draw.text((x_text_start, y), f"Buyer: {self.ebuyer.get()}", font=font_subtitle, fill=(0,0,0))
+        y += 25
+        draw.text((x_text_start, y), f"Seller: {self.eseller.get()}", font=font_subtitle, fill=(0,0,0))
+        y += 25
+        draw.line((15, y, w - 15, y), fill=main_color, width=2)
+        y += 10
 
         for itm, c in zip(items, costs):
-            draw.text((10, y), f"{itm}: €{c:.2f}", font=font, fill="black")
-            y += line_height
+            draw.text((20, y), itm, font=font_regular, fill=(0,0,0))
+            draw.text((w - 120, y), f"€{c:.2f}", font=font_regular, fill=(0,0,0))
+            y += 30
 
-        draw.line((10, y, w - 10, y), fill="black")
-        y += 5
+        draw.line((15, y, w - 15, y), fill=main_color, width=2)
+        y += 10
 
-        draw.text((10, y), f"Total: €{total:.2f}", font=font, fill="black")
+        draw.text((20, y), "Total:", font=font_subtitle, fill=(0,0,0))
+        draw.text((w - 120, y), f"€{total:.2f}", font=font_subtitle, fill=(0,0,0))
 
+        # Carpeta y guardado automático
         folder = "Receipts"
         os.makedirs(folder, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -245,7 +290,7 @@ class App:
             messagebox.showerror("Save Error", f"No se pudo guardar el recibo:\n{e}")
             return
 
-        # Intentar abrir el archivo automáticamente según SO
+        # Abrir archivo automáticamente
         try:
             if sys.platform.startswith('darwin'):
                 subprocess.call(('open', path))
@@ -263,7 +308,7 @@ class App:
         self.bt_submit.config(state='disabled')
         self.tp.delete("1.0", "end")
         self.tc.delete("1.0", "end")
-        self.status_lbl.config(text="Ready")
+        self.status_lbl.config(text="Ready", fg="#333")
         self.timer_lbl.config(text="")
 
 if __name__ == "__main__":
