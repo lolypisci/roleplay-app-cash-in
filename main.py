@@ -1,350 +1,117 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Rolefy – Teacher View</title>
-  <link rel="icon" href="icon.ico"/>
-  <style>
-    body { font-family: Arial, sans-serif; margin:20px; background:#f4f6f8; color:#333; }
-    header { display:flex; align-items:center; gap:10px; }
-    header img { height:40px; }
-    header h1 { margin:0; font-size:1.8rem; }
-    .tabs { margin-top:20px; }
-    .tabs button { padding:10px 20px; margin-right:5px; border:none; background:#ddd; cursor:pointer; }
-    .tabs button.active { background:#2980b9; color:#fff;}
-    .tab-content { margin-top:20px; }
-    table { width:100%; border-collapse:collapse; background:#fff; box-shadow:0 0 5px rgba(0,0,0,0.1);}
-    th,td{padding:8px;border:1px solid #e0e0e0;text-align:left;}
-    th {background:#2980b9;color:#fff;}
-    td.editable:hover {background:#f0f8ff;cursor:pointer;}
-    button.primary { background:#2980b9;color:white;border:none;padding:8px 12px;border-radius:3px;cursor:pointer;}
-    button.primary:hover { background:#1f6391; }
-    form label{display:block;margin-top:10px;}
-    form input, form textarea{width:100%;padding:6px; margin-top:4px; border:1px solid #ccc; border-radius:3px;}
-    /* Estilos para grabadora */
-    #recorder-controls {
-      margin-top: 10px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    #record-timer {
-      font-weight: bold;
-      font-family: monospace;
-      min-width: 70px;
-      text-align: center;
-    }
-  </style>
-</head>
-<body>
-<header>
-  <img src="logo.png" alt="Rolefy Logo"/>
-  <h1>Rolefy – Teacher View</h1>
-</header>
+import os
+import json
+import uuid
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends, Request
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
+from sqlalchemy.orm import Session
+from database import SessionLocal, engine
+import models
+from datetime import datetime
 
-<div class="tabs">
-  <button id="tab-sessions" class="active">Saved Sessions</button>
-  <button id="tab-record">Record Roleplay</button>
-</div>
+app = FastAPI()
 
-<div id="content-sessions" class="tab-content">
-  <div style="margin-bottom:10px;">
-    <label>Filter by Student:
-      <select id="filter-student"><option value="all">All</option></select>
-    </label>
-    <button id="refresh-roleplays" class="primary">Refresh</button>
-    <button id="btn-backup" class="primary">Create Backup</button>
-    <button id="btn-restart" class="primary">Restart Railway</button>
-  </div>
-  <table>
-    <thead>
-      <tr><th>Buyer</th><th>Seller</th><th>Items</th><th>Total (€)</th>
-          <th>Audio</th><th>Feedback</th><th>Score</th><th>Timestamp</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
+models.Base.metadata.create_all(bind=engine)
 
-<div id="content-record" class="tab-content" style="display:none;">
-  <form id="roleplay-form">
-    <label>Buyer Name:<input type="text" name="comprador" required></label>
-    <label>Seller Name:<input type="text" name="vendedor" required></label>
-    <label>Products (comma separated):<input type="text" name="productos" required></label>
-    <label>Costs (comma separated):<input type="text" name="costes" required></label>
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-    <!-- Selector archivo tradicional -->
-    <label>Audio File (choose file or record):<input type="file" id="audio-file" name="audio" accept="audio/*"></label>
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-    <!-- Grabadora integrada -->
-    <div id="recorder-controls">
-      <button type="button" id="btn-record" class="primary">Record</button>
-      <button type="button" id="btn-stop" class="primary" disabled>Stop</button>
-      <button type="button" id="btn-cancel" class="primary" disabled>Cancel</button>
-      <div id="record-timer">00:00</div>
-    </div>
+@app.post("/upload")
+async def upload_roleplay(
+    comprador: str = Form(...),
+    vendedor: str = Form(...),
+    productos: str = Form(...),
+    costes: str = Form(...),
+    audio: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    if audio.content_type.split("/")[0] != "audio":
+        raise HTTPException(status_code=400, detail="Must upload audio")
 
-    <button type="submit" class="primary" style="margin-top:15px;">Submit Roleplay</button>
-  </form>
-</div>
+    ext = os.path.splitext(audio.filename)[1] or ".wav"
+    filename = f"{uuid.uuid4().hex}{ext}"
+    os.makedirs("uploads", exist_ok=True)
+    path = os.path.join("uploads", filename)
+    with open(path, "wb") as f:
+        f.write(await audio.read())
 
-<script>
-let allRoleplays = [];
-let mediaRecorder;
-let audioChunks = [];
-let recordingStartTime = null;
-let recordTimerInterval = null;
+    rp = models.Roleplay(
+        comprador=comprador,
+        vendedor=vendedor,
+        productos=productos,
+        costes=costes,
+        audio_filename=filename
+    )
+    db.add(rp)
+    db.commit()
+    db.refresh(rp)
+    return JSONResponse({"status": "ok", "id": rp.id})
 
-// Tabs
-document.getElementById('tab-sessions').onclick = () => {
-  document.getElementById('content-sessions').style.display = '';
-  document.getElementById('content-record').style.display = 'none';
-  tabActive('sessions');
-};
-document.getElementById('tab-record').onclick = () => {
-  document.getElementById('content-sessions').style.display = 'none';
-  document.getElementById('content-record').style.display = '';
-  tabActive('record');
-};
-function tabActive(id){
-  document.getElementById('tab-sessions').classList.toggle('active', id==='sessions');
-  document.getElementById('tab-record').classList.toggle('active', id==='record');
-}
+@app.get("/roleplays")
+def list_roleplays(db: Session = Depends(get_db)):
+    items = db.query(models.Roleplay).all()
+    out = []
+    for r in items:
+        try:
+            productos = json.loads(r.productos)
+        except:
+            productos = []
+        try:
+            costes = json.loads(r.costes)
+        except:
+            costes = []
+        out.append({
+            "id": r.id,
+            "comprador": r.comprador,
+            "vendedor": r.vendedor,
+            "productos": productos,
+            "costes": costes,
+            "audio_url": f"/audio/{r.audio_filename}",
+            "timestamp": r.timestamp.isoformat(),
+            "feedback": r.feedback or "",
+            "nota": r.nota or ""
+        })
+    return out
 
-// Load & render
-async function loadRoleplays(){
-  allRoleplays = await fetch('/roleplays').then(r=>r.json());
-  populateFilterOptions();
-  renderTable(allRoleplays);
-}
-function populateFilterOptions(){
-  const sel = document.getElementById('filter-student');
-  const set = new Set();
-  allRoleplays.forEach(r=>{ set.add(r.comprador); set.add(r.vendedor); });
-  sel.innerHTML = '<option value="all">All</option>';
-  set.forEach(s=> sel.innerHTML += `<option value="${s}">${s}</option>`);
-}
-function renderTable(data){
-  const tbody = document.querySelector('tbody');
-  tbody.innerHTML = '';
-  data.forEach(r=>{
-    const total = r.costes.reduce((a,b)=>a+b,0).toFixed(2);
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${r.comprador}</td>
-      <td>${r.vendedor}</td>
-      <td>${r.productos.join(', ')}</td>
-      <td>€${total}</td>
-      <td><audio controls src="${r.audio_url}"></audio></td>
-      <td class="editable" data-id="${r.id}" data-field="feedback">${r.feedback}</td>
-      <td class="editable" data-id="${r.id}" data-field="nota">${r.nota}</td>
-      <td>${new Date(r.timestamp).toLocaleString()}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-  makeEditable();
-}
+@app.post("/update_feedback")
+async def update_feedback(request: Request, db: Session = Depends(get_db)):
+    data = await request.json()
+    roleplay_id = data.get("id")
+    feedback = data.get("feedback", None)
+    nota = data.get("nota", None)
+    rp = db.query(models.Roleplay).filter(models.Roleplay.id == roleplay_id).first()
+    if rp:
+        if feedback is not None:
+            rp.feedback = feedback
+        if nota is not None:
+            rp.nota = nota
+        db.commit()
+        return {"status": "ok"}
+    return {"status": "error", "message": "Roleplay not found"}
 
-// Inline editing
-function makeEditable(){
-  document.querySelectorAll('.editable').forEach(td=>{
-    td.onclick = async ()=>{
-      const old = td.textContent;
-      const input = document.createElement(td.dataset.field==='nota' ? 'input' : 'textarea');
-      input.value = old;
-      td.innerHTML = '';
-      td.appendChild(input);
-      input.focus();
+@app.get("/audio/{filename}")
+async def get_audio(filename: str):
+    path = os.path.join("uploads", filename)
+    if not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail="Audio file not found")
+    ext = os.path.splitext(filename)[1].lower()
+    media = {
+        ".wav": "audio/wav",
+        ".webm": "audio/webm",
+        ".mp3": "audio/mpeg"
+    }.get(ext, "application/octet-stream")
+    return FileResponse(path, media_type=media)
 
-      input.onblur = async ()=>{
-        const val = input.value;
+@app.get("/")
+async def serve_index():
+    return FileResponse("static/index.html")
 
-        // Obtener la fila (tr) padre para leer ambos campos
-        const tr = td.closest('tr');
-
-        // Obtener los valores actuales de feedback y nota
-        const feedbackTd = tr.querySelector('td[data-field="feedback"]');
-        const notaTd = tr.querySelector('td[data-field="nota"]');
-
-        const feedbackVal = (td.dataset.field === 'feedback') ? val : feedbackTd.textContent;
-        const notaVal = (td.dataset.field === 'nota') ? val : notaTd.textContent;
-
-        const payload = {
-          id: td.dataset.id,
-          feedback: feedbackVal,
-          nota: notaVal
-        };
-
-        const res = await fetch('/update_feedback', {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify(payload)
-        });
-
-        const data = await res.json();
-
-        if(data.status === 'ok'){
-          // Actualizar ambos campos en la tabla para que se reflejen
-          feedbackTd.textContent = feedbackVal;
-          notaTd.textContent = notaVal;
-        } else {
-          alert('Error updating fields');
-          // Restaurar valores antiguos si error
-          feedbackTd.textContent = feedbackTd.textContent;
-          notaTd.textContent = notaTd.textContent;
-        }
-      };
-    };
-  });
-}
-
-// Filter
-document.getElementById('filter-student').onchange = e=>{
-  const v = e.target.value;
-  renderTable(v==='all'?allRoleplays:allRoleplays.filter(r=>r.comprador===v||r.vendedor===v));
-};
-
-// Buttons
-document.getElementById('refresh-roleplays').onclick = loadRoleplays;
-document.getElementById('btn-backup').onclick = ()=> window.open('/backup','_blank');
-document.getElementById('btn-restart').onclick = async ()=>{
-  const res = await fetch('/restart_railway',{method:'POST'});
-  alert((await res.json()).status==='restarted'?'Railway restarted!':'Error');
-};
-
-// Form submit with audio blob or file
-document.getElementById('roleplay-form').onsubmit = async e=>{
-  e.preventDefault();
-  const form = e.target;
-
-  // Comprobar si hay audio grabado en blob
-  if(window.recordedAudioBlob){
-    // Si hay grabación, usarla y borrar input file para evitar conflicto
-    const fd = new FormData();
-    fd.append('comprador', form.comprador.value);
-    fd.append('vendedor', form.vendedor.value);
-    fd.append('productos', JSON.stringify(form.productos.value.split(',').map(s=>s.trim())));
-    fd.append('costes', JSON.stringify(form.costes.value.split(',').map(s=>parseFloat(s)||0)));
-
-    fd.append('audio', window.recordedAudioBlob, 'recording.webm');
-
-    const res = await fetch('/upload',{method:'POST',body:fd});
-    const data = await res.json();
-    if(data.status==='ok'){
-      alert('Uploaded!');
-      form.reset();
-      window.recordedAudioBlob = null;
-      document.getElementById('audio-file').value = '';
-      updateRecordButtons(false);
-      loadRoleplays();
-    } else {
-      alert('Error uploading recording');
-    }
-  } else if(form['audio'].files.length > 0){
-    // Si no hay grabación, pero sí archivo seleccionado
-    const fd = new FormData(form);
-    fd.set('productos', JSON.stringify(form.productos.value.split(',').map(s=>s.trim())));
-    fd.set('costes', JSON.stringify(form.costes.value.split(',').map(s=>parseFloat(s)||0)));
-
-    const res = await fetch('/upload',{method:'POST',body:fd});
-    const data = await res.json();
-    if(data.status==='ok'){
-      alert('Uploaded!');
-      form.reset();
-      loadRoleplays();
-    } else {
-      alert('Error uploading file');
-    }
-  } else {
-    alert('Please record or select an audio file.');
-  }
-};
-
-// Grabadora de audio
-const btnRecord = document.getElementById('btn-record');
-const btnStop = document.getElementById('btn-stop');
-const btnCancel = document.getElementById('btn-cancel');
-const recordTimer = document.getElementById('record-timer');
-
-function updateRecordButtons(started){
-  btnRecord.disabled = started;
-  btnStop.disabled = !started;
-  btnCancel.disabled = !started;
-}
-
-function formatTime(seconds){
-  const m = String(Math.floor(seconds/60)).padStart(2,'0');
-  const s = String(seconds%60).padStart(2,'0');
-  return `${m}:${s}`;
-}
-
-function startTimer(){
-  recordingStartTime = Date.now();
-  recordTimer.textContent = "00:00";
-  recordTimerInterval = setInterval(() => {
-    const elapsed = Math.floor((Date.now() - recordingStartTime)/1000);
-    recordTimer.textContent = formatTime(elapsed);
-  }, 1000);
-}
-
-function stopTimer(){
-  clearInterval(recordTimerInterval);
-  recordTimer.textContent = "00:00";
-  recordingStartTime = null;
-}
-
-btnRecord.onclick = async () => {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    alert("Your browser does not support audio recording.");
-    return;
-  }
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaRecorder = new MediaRecorder(stream);
-    audioChunks = [];
-
-    mediaRecorder.ondataavailable = e => {
-      if(e.data.size > 0) audioChunks.push(e.data);
-    };
-
-    mediaRecorder.onstop = () => {
-      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-      window.recordedAudioBlob = audioBlob;
-
-      // Limpiar input file para evitar conflicto
-      document.getElementById('audio-file').value = '';
-
-      updateRecordButtons(false);
-      stopTimer();
-    };
-
-    mediaRecorder.start();
-    updateRecordButtons(true);
-    startTimer();
-
-  } catch (e) {
-    alert("Error accessing microphone: "+e.message);
-  }
-};
-
-btnStop.onclick = () => {
-  if(mediaRecorder && mediaRecorder.state === "recording") {
-    mediaRecorder.stop();
-  }
-};
-
-btnCancel.onclick = () => {
-  if(mediaRecorder && mediaRecorder.state === "recording") {
-    mediaRecorder.stop();
-  }
-  window.recordedAudioBlob = null;
-  document.getElementById('audio-file').value = '';
-  updateRecordButtons(false);
-  stopTimer();
-};
-
-// Init
-window.onload = ()=>{ loadRoleplays(); updateRecordButtons(false); };
-</script>
-</body>
-</html>
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

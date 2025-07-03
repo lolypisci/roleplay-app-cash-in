@@ -40,7 +40,7 @@
 </head>
 <body>
 <header>
-  <img src="/static/logo.png" alt="Rolefy Logo"/>
+  <img src="logo.png" alt="Rolefy Logo"/>
   <h1>Rolefy – Teacher View</h1>
 </header>
 
@@ -55,8 +55,6 @@
       <select id="filter-student"><option value="all">All</option></select>
     </label>
     <button id="refresh-roleplays" class="primary">Refresh</button>
-    <button id="btn-backup" class="primary">Create Backup</button>
-    <button id="btn-restart" class="primary">Restart Railway</button>
   </div>
   <table>
     <thead>
@@ -115,17 +113,22 @@ function tabActive(id){
 // Load & render
 async function loadRoleplays(){
   allRoleplays = await fetch('/roleplays').then(r=>r.json());
-  populateFilterOptions(); renderTable(allRoleplays);
+  populateFilterOptions();
+  renderTable(allRoleplays);
 }
 function populateFilterOptions(){
   const sel = document.getElementById('filter-student');
   const set = new Set();
-  allRoleplays.forEach(r=>{ set.add(r.comprador); set.add(r.vendedor); });
+  allRoleplays.forEach(r=>{
+    set.add(r.comprador);
+    set.add(r.vendedor);
+  });
   sel.innerHTML = '<option value="all">All</option>';
   set.forEach(s=> sel.innerHTML += `<option value="${s}">${s}</option>`);
 }
 function renderTable(data){
-  const tbody = document.querySelector('tbody'); tbody.innerHTML = '';
+  const tbody = document.querySelector('tbody'); 
+  tbody.innerHTML = '';
   data.forEach(r=>{
     const total = r.costes.reduce((a,b)=>a+b,0).toFixed(2);
     const tr = document.createElement('tr');
@@ -151,7 +154,8 @@ function makeEditable(){
       const old = td.textContent;
       const input = document.createElement(td.dataset.field==='nota'?'input':'textarea');
       input.value = old;
-      td.innerHTML = ''; td.appendChild(input);
+      td.innerHTML = '';
+      td.appendChild(input);
       input.focus();
       input.onblur = async ()=>{
         const val = input.value;
@@ -182,27 +186,19 @@ document.getElementById('filter-student').onchange = e=>{
 
 // Buttons
 document.getElementById('refresh-roleplays').onclick = loadRoleplays;
-document.getElementById('btn-backup').onclick = ()=> window.open('/backup','_blank');
-document.getElementById('btn-restart').onclick = async ()=>{
-  const res = await fetch('/restart_railway',{method:'POST'});
-  alert((await res.json()).status==='restarted'?'Railway restarted!':'Error');
-};
 
 // Form submit with audio blob or file
 document.getElementById('roleplay-form').onsubmit = async e=>{
   e.preventDefault();
   const form = e.target;
 
-  // Comprobar si hay audio grabado en blob
   if(window.recordedAudioBlob){
-    // Si hay grabación, usarla y borrar input file para evitar conflicto
     const fd = new FormData();
     fd.append('comprador', form.comprador.value);
     fd.append('vendedor', form.vendedor.value);
     fd.append('productos', JSON.stringify(form.productos.value.split(',').map(s=>s.trim())));
     fd.append('costes', JSON.stringify(form.costes.value.split(',').map(s=>parseFloat(s)||0)));
     fd.append('audio', window.recordedAudioBlob, 'recording.webm');
-
     const res = await fetch('/upload',{method:'POST',body:fd});
     const data = await res.json();
     if(data.status==='ok'){
@@ -216,11 +212,9 @@ document.getElementById('roleplay-form').onsubmit = async e=>{
       alert('Error uploading recording');
     }
   } else if(form['audio'].files.length > 0){
-    // Si no hay grabación, pero sí archivo seleccionado
     const fd = new FormData(form);
     fd.set('productos', JSON.stringify(form.productos.value.split(',').map(s=>s.trim())));
     fd.set('costes', JSON.stringify(form.costes.value.split(',').map(s=>parseFloat(s)||0)));
-
     const res = await fetch('/upload',{method:'POST',body:fd});
     const data = await res.json();
     if(data.status==='ok'){
@@ -277,26 +271,19 @@ btnRecord.onclick = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     mediaRecorder = new MediaRecorder(stream);
     audioChunks = [];
-
     mediaRecorder.ondataavailable = e => {
       if(e.data.size > 0) audioChunks.push(e.data);
     };
-
     mediaRecorder.onstop = () => {
       const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
       window.recordedAudioBlob = audioBlob;
-
-      // Limpiar input file para evitar conflicto
       document.getElementById('audio-file').value = '';
-
       updateRecordButtons(false);
       stopTimer();
     };
-
     mediaRecorder.start();
     updateRecordButtons(true);
     startTimer();
-
   } catch (e) {
     alert("Error accessing microphone: "+e.message);
   }
@@ -321,6 +308,5 @@ btnCancel.onclick = () => {
 // Init
 window.onload = ()=>{ loadRoleplays(); updateRecordButtons(false); };
 </script>
-
 </body>
 </html>
