@@ -1,4 +1,3 @@
-# main.py
 import os
 import json
 import uuid
@@ -126,3 +125,8 @@ def list_uploads():
 @app.get("/")
 async def serve_index():
     return FileResponse("static/index.html")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
