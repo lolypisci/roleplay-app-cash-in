@@ -1,3 +1,6 @@
+import os
+import sys
+import subprocess
 import sounddevice as sd
 import numpy as np
 import wave
@@ -23,14 +26,9 @@ def get_backend_url():
         else:
             raise ValueError("Empty backend_url in config")
     except Exception:
-        # Si no puede obtener de internet, pedir al usuario con diálogo TK
         root = tk.Tk()
         root.withdraw()
-        url = simpledialog.askstring(
-            "Backend URL",
-            "No se pudo obtener la URL del backend.\nIntroduce la URL del backend Rolefy:",
-            initialvalue=DEFAULT_BACKEND
-        )
+        url = simpledialog.askstring("Backend URL", "No se pudo obtener la URL del backend.\nIntroduce la URL del backend Rolefy:", initialvalue=DEFAULT_BACKEND)
         root.destroy()
         if not url:
             messagebox.showerror("Error", "No se especificó URL de backend. La app se cerrará.")
@@ -216,13 +214,29 @@ class App:
             y += 20
         draw.text((10, y), f"Total: €{total:.2f}", font=font)
 
-        path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG files", "*.png")], title="Save Receipt As")
-        if path:
-            try:
-                img.save(path)
-                messagebox.showinfo("Saved", f"Receipt saved to {path}")
-            except Exception as e:
-                messagebox.showerror("Save Error", f"No se pudo guardar el recibo:\n{e}")
+        folder = "Receipts"
+        os.makedirs(folder, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"receipt_{timestamp}.png"
+        path = os.path.join(folder, filename)
+
+        try:
+            img.save(path)
+        except Exception as e:
+            messagebox.showerror("Save Error", f"No se pudo guardar el recibo:\n{e}")
+            return
+
+        try:
+            if sys.platform.startswith('darwin'):
+                subprocess.call(('open', path))
+            elif sys.platform.startswith('win'):
+                os.startfile(path)
+            elif sys.platform.startswith('linux'):
+                subprocess.call(('xdg-open', path))
+        except Exception as e:
+            messagebox.showwarning("Aviso", f"No se pudo abrir el archivo automáticamente:\n{e}")
+
+        messagebox.showinfo("Guardado", f"Recibo guardado en:\n{os.path.abspath(path)}")
 
     def reset(self):
         self.audio_data = None
