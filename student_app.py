@@ -148,53 +148,53 @@ class App:
         self.bt_stop.config(state='disabled')
         self.bt_submit.config(state='normal')
 
-    def submit(self):
-        items = [line.strip() for line in self.tp.get("1.0", "end").splitlines() if line.strip()]
-        costs_text = [line.strip() for line in self.tc.get("1.0", "end").splitlines() if line.strip()]
+def submit(self):
+    items = [line.strip() for line in self.tp.get("1.0", "end").splitlines() if line.strip()]
+    costs_text = [line.strip() for line in self.tc.get("1.0", "end").splitlines() if line.strip()]
 
-        if len(items) != len(costs_text):
-            messagebox.showwarning("Error", "El número de items y costes no coincide.")
-            return
+    if len(items) != len(costs_text):
+        messagebox.showwarning("Error", "El número de items y costes no coincide.")
+        return
+    try:
+        costs = [float(c.replace(',', '.')) for c in costs_text]
+    except ValueError:
+        messagebox.showwarning("Error", "Los costes deben ser números válidos.")
+        return
+
+    if self.audio_data is None or self.audio_data.size == 0:
+        messagebox.showwarning("Error", "No hay audio para enviar.")
+        return
+
+    self.status_lbl.config(text="Uploading...")
+    self.bt_submit.config(state='disabled')
+    self.bt_start.config(state='disabled')
+
+    wav_data = encode_wav(self.audio_data)
+    files = {"audio": ("recording.wav", wav_data, "audio/wav")}
+    data = {
+        "comprador": self.ebuyer.get().strip(),
+        "vendedor": self.eseller.get().strip(),
+        "productos": json.dumps(items),
+        "costes": json.dumps(costs),
+    }
+
+    def do_upload():
         try:
-            costs = [float(c.replace(',', '.')) for c in costs_text]
-        except ValueError:
-            messagebox.showwarning("Error", "Los costes deben ser números válidos.")
-            return
+            response = requests.post(BACKEND + "/upload", data=data, files=files, timeout=30)
+            if response.status_code == 200 and response.json().get("status") == "ok":
+                self.status_lbl.config(text="Upload successful!")
+                self.show_receipt(items, costs)
+                self.reset()
+            else:
+                raise Exception(f"Server error: {response.text}")
+        except Exception as e:
+            messagebox.showerror("Upload Error", str(e))
+            self.status_lbl.config(text="Upload failed.")
+        finally:
+            self.bt_submit.config(state='normal')
+            self.bt_start.config(state='normal')
 
-        if not self.audio_data:
-            messagebox.showwarning("Error", "No hay audio para enviar.")
-            return
-
-        self.status_lbl.config(text="Uploading...")
-        self.bt_submit.config(state='disabled')
-        self.bt_start.config(state='disabled')
-
-        wav_data = encode_wav(self.audio_data)
-        files = {"audio": ("recording.wav", wav_data, "audio/wav")}
-        data = {
-            "comprador": self.ebuyer.get().strip(),
-            "vendedor": self.eseller.get().strip(),
-            "productos": json.dumps(items),
-            "costes": json.dumps(costs),
-        }
-
-        def do_upload():
-            try:
-                response = requests.post(BACKEND + "/upload", data=data, files=files, timeout=30)
-                if response.status_code == 200 and response.json().get("status") == "ok":
-                    self.status_lbl.config(text="Upload successful!")
-                    self.show_receipt(items, costs)
-                    self.reset()
-                else:
-                    raise Exception(f"Server error: {response.text}")
-            except Exception as e:
-                messagebox.showerror("Upload Error", str(e))
-                self.status_lbl.config(text="Upload failed.")
-            finally:
-                self.bt_submit.config(state='normal')
-                self.bt_start.config(state='normal')
-
-        threading.Thread(target=do_upload, daemon=True).start()
+    threading.Thread(target=do_upload, daemon=True).start()
 
     def show_receipt(self, items, costs):
         total = sum(costs)
