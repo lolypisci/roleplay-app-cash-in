@@ -3,7 +3,7 @@ import numpy as np
 import wave
 import threading
 import tkinter as tk
-from tkinter import messagebox, simpledialog, filedialog, Canvas, Frame, Scrollbar
+from tkinter import messagebox, simpledialog, Canvas, Frame, Scrollbar
 from PIL import Image, ImageTk, ImageDraw, ImageFont
 import io
 import json
@@ -24,17 +24,10 @@ def start_backend():
         if resp.status_code == 200:
             print("Backend ya está corriendo.")
             return
-    except Exception as e:
-        print("Arrancando backend...", e)
-        proc = subprocess.Popen(backend_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except Exception:
+        print("Arrancando backend...")
+        subprocess.Popen(backend_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(3)
-        try:
-            out, err = proc.communicate(timeout=1)
-            print("Backend stdout:", out.decode())
-            print("Backend stderr:", err.decode())
-        except subprocess.TimeoutExpired:
-            print("Backend arrancado correctamente (sin output inmediato)")
-
 # --- END BACKEND FUNCTION ---
 
 CONFIG_URL = "https://raw.githubusercontent.com/lolypisci/roleplay-app-cash-in/main/config.json"
@@ -289,14 +282,21 @@ class App:
         self.bt_submit["state"] = "disabled"
         self.bt_download["state"] = "disabled"
         self.seconds = 0
+
+        # Corregido: se activa el flag antes del temporizador para que arranque
+        self.recorder.recording = True
+
         self.update_timer()
         threading.Thread(target=self._record_thread, daemon=True).start()
 
     def _record_thread(self):
-        self.recorder.start()
-        while self.recorder.recording:
-            time.sleep(0.1)
-        self.audio_data = self.recorder.stop()
+        try:
+            self.recorder.start()
+            while self.recorder.recording:
+                time.sleep(0.1)
+            self.audio_data = self.recorder.stop()
+        except Exception as e:
+            self.status_lbl.config(text=f"Recording error: {e}")
 
     def stop_recording(self):
         if not self.recorder.recording:
@@ -442,12 +442,10 @@ class App:
         self.canvas.itemconfig(self.window, width=canvas_width)
 
     def _on_mousewheel(self, event):
-        self.canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        self.canvas.yview_scroll(-int(event.delta / 120), "units")
 
-def main():
+
+if __name__ == "__main__":
     root = tk.Tk()
     app = App(root)
     root.mainloop()
-
-if __name__ == "__main__":
-    main()
