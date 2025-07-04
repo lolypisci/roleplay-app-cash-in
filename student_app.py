@@ -321,22 +321,22 @@ class App:
             self.seconds += 1
             self.root.after(1000, self.update_timer)
 
-def submit(self):
+    def submit(self):
     buyer = self.ebuyer.get().strip()
     seller = self.eseller.get().strip()
     items = self.titems.get("1.0", "end").strip()
     costs = self.tcosts.get("1.0", "end").strip()
 
-    if not buyer or not seller:
+        if not buyer or not seller:
         messagebox.showwarning("Warning", "Buyer and Seller names are required.")
         return
-    if not items:
+        if not items:
         messagebox.showwarning("Warning", "Please enter at least one item.")
         return
-    if not costs:
+        if not costs:
         messagebox.showwarning("Warning", "Please enter costs.")
         return
-    if self.audio_data is None or self.audio_data.size == 0:
+        if self.audio_data is None or self.audio_data.size == 0:
         messagebox.showwarning("Warning", "Please record audio before submitting.")
         return
 
@@ -352,14 +352,14 @@ def submit(self):
         'costes': json.dumps(costs.splitlines())
     }
 
-    try:
+        try:
         resp = requests.post(f"{BACKEND}/upload", files=files, data=data)
         resp.raise_for_status()
         messagebox.showinfo("Success", "Roleplay uploaded successfully!")
         self.bt_submit["state"] = "disabled"
         self.bt_download["state"] = "normal"
         self._save_draft_clear()
-    except Exception as e:
+        except Exception as e:
         messagebox.showerror("Failed to upload roleplay", str(e))
 
     def download_receipt(self):
