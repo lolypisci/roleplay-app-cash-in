@@ -122,7 +122,7 @@ class App:
         self.handout_canvas.grid(row=9, column=0, columnspan=2)
 
         self.bt_open_handout = self._styled_button("Open Handout", COLOR_ACCENT, self.open_handout)
-        self.bt_open_handout.grid(row=10, column=0, columnspan=2, pady=10)
+        self.bt_open_handout.pack(pady=10, anchor="center")
 
         # Footer
         tk.Label(root, text="© All rights reserved\nApp created by María Dolores Rivas Sánchez",
