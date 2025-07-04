@@ -12,6 +12,26 @@ import os
 import time
 from datetime import datetime
 from fpdf import FPDF
+import subprocess
+import sys
+
+# --- START BACKEND FUNCTION ---
+def start_backend():
+    """Inicia el backend FastAPI si no está ya iniciado."""
+
+    backend_cmd = [sys.executable, '-m', 'uvicorn', 'main:app', '--host', '127.0.0.1', '--port', '8000']
+
+    try:
+        resp = requests.get("http://127.0.0.1:8000")
+        if resp.status_code == 200:
+            print("Backend ya está corriendo.")
+            return
+    except Exception:
+        print("Arrancando backend...")
+        subprocess.Popen(backend_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(3)
+# --- END BACKEND FUNCTION ---
+
 
 # Configuración
 CONFIG_URL = "https://raw.githubusercontent.com/lolypisci/roleplay-app-cash-in/main/config.json"
@@ -32,6 +52,8 @@ COLOR_ACCENT = "#1E90FF"        # azul vivo
 COLOR_TEXT = "#333333"
 COLOR_MUTED = "#777777"
 
+# Arrancamos backend ANTES de obtener la URL
+start_backend()
 
 def get_backend_url():
     try:
@@ -46,7 +68,6 @@ def get_backend_url():
         if not url:
             exit("No backend provided")
         return url.rstrip("/")
-
 
 BACKEND = get_backend_url()
 
