@@ -18,7 +18,6 @@ import sys
 # --- START BACKEND FUNCTION ---
 def start_backend():
     """Inicia el backend FastAPI si no está ya iniciado."""
-
     backend_cmd = [sys.executable, '-m', 'uvicorn', 'main:app', '--host', '127.0.0.1', '--port', '8000']
 
     try:
@@ -32,8 +31,6 @@ def start_backend():
         time.sleep(3)
 # --- END BACKEND FUNCTION ---
 
-
-# Configuración
 CONFIG_URL = "https://raw.githubusercontent.com/lolypisci/roleplay-app-cash-in/main/config.json"
 DEFAULT_BACKEND = "http://localhost:8000"
 ASSETS_DIR = "assets"
@@ -52,7 +49,6 @@ COLOR_ACCENT = "#1E90FF"        # azul vivo
 COLOR_TEXT = "#333333"
 COLOR_MUTED = "#777777"
 
-# Arrancamos backend ANTES de obtener la URL
 start_backend()
 
 def get_backend_url():
@@ -71,7 +67,6 @@ def get_backend_url():
 
 BACKEND = get_backend_url()
 
-
 class Recorder:
     def __init__(self):
         self.recording = False
@@ -81,15 +76,16 @@ class Recorder:
         try:
             self.frames = []
             self.recording = True
-
+            print("Recorder: starting InputStream...")
             def callback(indata, frames, time, status):
                 if self.recording:
                     self.frames.append(indata.copy())
-
             self.stream = sd.InputStream(samplerate=SAMPLE_RATE, channels=CHANNELS, callback=callback)
             self.stream.start()
+            print("Recorder: InputStream started successfully.")
         except Exception as e:
             self.recording = False
+            print(f"Recorder: Failed to start recording: {e}")
             messagebox.showerror("Error", f"Could not start recording:\n{e}")
 
     def stop(self):
@@ -102,7 +98,6 @@ class Recorder:
             messagebox.showerror("Error", f"Could not stop recording:\n{e}")
             return None
 
-
 def encode_wav(data):
     raw = (np.int16(np.clip(data, -1, 1) * 32767)).tobytes()
     buf = io.BytesIO()
@@ -114,7 +109,6 @@ def encode_wav(data):
     wf.close()
     return buf.getvalue()
 
-
 class App:
     def __init__(self, root):
         self.root = root
@@ -123,7 +117,6 @@ class App:
         root.configure(bg=COLOR_BG)
         root.minsize(700, 600)
 
-        # Scrollable canvas setup
         self.canvas = Canvas(root, bg=COLOR_BG, highlightthickness=0)
         self.scrollbar = Scrollbar(root, command=self.canvas.yview)
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
@@ -143,7 +136,6 @@ class App:
         self.seconds = 0
         self.timer = None
 
-        # Load fonts (Lexend, Jost, Nunito)
         self.fonts = {
             "Lexend": os.path.join(FONTS_DIR, "Lexend-Regular.ttf"),
             "Lexend-Bold": os.path.join(FONTS_DIR, "Lexend-SemiBold.ttf"),
@@ -157,7 +149,6 @@ class App:
         self._load_draft()
 
     def load_fonts_for_pil(self):
-        # Try loading fonts for PIL drawing (used in PDF/recibo generation)
         self.pil_fonts = {}
         for name, path in self.fonts.items():
             try:
@@ -168,7 +159,6 @@ class App:
                 self.pil_fonts[name] = ImageFont.load_default()
 
     def _build_ui(self):
-        # Header with logo and text
         header = Frame(self.container, bg=COLOR_BG)
         header.pack(pady=10)
 
@@ -193,26 +183,18 @@ class App:
         tk.Label(text_frame, text="Teacher: María Dolores Rivas Sánchez", font=("Lexend", 10), bg=COLOR_BG,
                  fg=COLOR_MUTED).pack(anchor="w")
 
-        # Buyer entry
         self.ebuyer = self._add_entry("Buyer:")
-
-        # Seller entry
         self.eseller = self._add_entry("Seller:")
-
-        # Items and costs text boxes
         self.titems = self._add_text("Items (1 per line):")
         self.tcosts = self._add_text("Costs (1 per line):")
 
-        # Handout preview image with proportional resize
         self.handout_label = None
         self.load_handout_preview()
 
-        # Button Open Handout
         self.bt_open_handout = tk.Button(self.container, text="Open Handout", command=self.open_handout,
                                          bg=COLOR_ACCENT, fg="white", relief="flat")
         self.bt_open_handout.pack(pady=10)
 
-        # Buttons frame
         btn_frame = Frame(self.container, bg=COLOR_BG)
         btn_frame.pack(pady=15)
 
@@ -225,13 +207,11 @@ class App:
         self.bt_submit["state"] = "disabled"
         self.bt_download["state"] = "disabled"
 
-        # Status and timer labels
         self.status_lbl = tk.Label(self.container, text="Ready", bg=COLOR_BG, fg=COLOR_TEXT)
         self.status_lbl.pack()
         self.timer_lbl = tk.Label(self.container, text="00:00", bg=COLOR_BG, fg="green")
         self.timer_lbl.pack()
 
-        # Footer copyright with two lines centered
         footer = Frame(self.container, bg=COLOR_BG)
         footer.pack(side="bottom", pady=10)
         tk.Label(footer, text="Rolefy - Roleplay Evaluation App", font=("Lexend", 9), fg=COLOR_MUTED,
@@ -286,7 +266,6 @@ class App:
             self.handout_label = None
 
     def open_handout(self):
-        # Abrir handout.png en el visualizador de imágenes predeterminado
         if os.path.isfile(HANDOUT_PATH):
             try:
                 if os.name == 'nt':
@@ -305,22 +284,31 @@ class App:
     def start_recording(self):
         if self.recorder.recording:
             return
-        self.status_lbl.config(text="Recording...")
-        self.bt_start["state"] = "disabled"
-        self.bt_stop["state"] = "normal"
-        self.bt_submit["state"] = "disabled"
-        self.bt_download["state"] = "disabled"
+        try:
+            self.status_lbl.config(text="Recording...")
+            self.bt_start["state"] = "disabled"
+            self.bt_stop["state"] = "normal"
+            self.bt_submit["state"] = "disabled"
+            self.bt_download["state"] = "disabled"
 
-        self.seconds = 0
-        self.update_timer()  # <-- esto hace que el temporizador avance cada segundo
+            self.seconds = 0
+            self.update_timer()
 
-        threading.Thread(target=self._record_thread, daemon=True).start()
+            threading.Thread(target=self._record_thread, daemon=True).start()
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to start recording:\n{e}")
+            self.status_lbl.config(text="Ready")
+            self.bt_start["state"] = "normal"
+            self.bt_stop["state"] = "disabled"
 
     def _record_thread(self):
+        print("Recording thread started")
         self.recorder.start()
+        print(f"Recording status after start: {self.recorder.recording}")
         while self.recorder.recording:
             time.sleep(0.1)
         self.audio_data = self.recorder.stop()
+        print("Recording thread finished")
 
     def stop_recording(self):
         if not self.recorder.recording:
@@ -335,9 +323,9 @@ class App:
         mins = self.seconds // 60
         secs = self.seconds % 60
         self.timer_lbl.config(text=f"{mins:02d}:{secs:02d}")
-        if self.recorder.recording:
-            self.seconds += 1
-            self.root.after(1000, self.update_timer)
+        # Aquí forzamos el avance del temporizador aunque no grabe (solo para depurar)
+        self.seconds += 1
+        self.root.after(1000, self.update_timer)
 
     def submit(self):
         buyer = self.ebuyer.get().strip()
@@ -358,10 +346,8 @@ class App:
             messagebox.showwarning("Warning", "Please record audio before submitting.")
             return
 
-        # Prepare audio data in wav format bytes
         wav_bytes = encode_wav(self.audio_data)
 
-        # Prepare multipart form data
         files = {'audio': ('recording.wav', wav_bytes, 'audio/wav')}
         data = {
             'comprador': buyer,
@@ -452,7 +438,7 @@ class App:
             if os.path.isfile("draft.json"):
                 os.remove("draft.json")
         except Exception as e:
-            print("Error clearing draft:", e)
+            print("Error deleting draft:", e)
 
     def on_frame_configure(self, event):
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
@@ -462,14 +448,9 @@ class App:
         self.canvas.itemconfig(self.window, width=canvas_width)
 
     def _on_mousewheel(self, event):
-        self.canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
-
-def main():
+if __name__ == "__main__":
     root = tk.Tk()
     app = App(root)
     root.mainloop()
-
-
-if __name__ == "__main__":
-    main()
