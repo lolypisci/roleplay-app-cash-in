@@ -178,10 +178,21 @@ class App:
         self.timer_lbl = tk.Label(self.container, text="00:00", bg=COLOR_BG, fg="green")
         self.timer_lbl.pack()
 
-        # Pie de página copyright restaurado
-        tk.Label(self.container,
-                 text="© All rights reserved. App created by María Dolores Rivas Sánchez",
-                 font=("Lexend", 9), bg=COLOR_BG, fg=COLOR_MUTED).pack(pady=20)
+        # Pie de página copyright con dos líneas
+        footer_frame = tk.Frame(self.container, bg=COLOR_BG)
+        footer_frame.pack(pady=20)
+
+        tk.Label(footer_frame,
+                 text="© All Rights Reserved.",
+                 font=("Lexend", 9),
+                 bg=COLOR_BG,
+                 fg=COLOR_MUTED).pack()
+
+        tk.Label(footer_frame,
+                 text="Upgraded by María Dolores Rivas Sánchez",
+                 font=("Lexend", 9),
+                 bg=COLOR_BG,
+                 fg=COLOR_MUTED).pack()
 
     def open_handout(self):
         if os.path.exists(HANDOUT_PATH):
