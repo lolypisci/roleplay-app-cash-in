@@ -140,10 +140,22 @@ class App:
         tk.Label(text_frame, text="Teacher: María Dolores Rivas Sánchez", font=("Lexend", 10), bg=COLOR_BG, fg=COLOR_MUTED).pack(anchor="w")
 
         # Entradas
-        self._add_entry("Buyer:")
-        self._add_entry("Seller:")
+        self.ebuyer = self._add_entry("Buyer:")
+        self.eseller = self._add_entry("Seller:")
         self._add_text("Items (1 per line):")
         self._add_text("Costs (same count):")
+
+        # Handout
+        if os.path.exists(HANDOUT_PATH):
+            try:
+                handout_img = Image.open(HANDOUT_PATH).resize((500, 350), Image.Resampling.LANCZOS)
+                self.handout_tk = ImageTk.PhotoImage(handout_img)
+                tk.Label(self.container, image=self.handout_tk, bg=COLOR_BG).pack(pady=10)
+            except:
+                pass
+
+        self.bt_open_handout = tk.Button(self.container, text="Open Handout", command=self.open_handout, bg=COLOR_ACCENT, fg="white", relief="flat")
+        self.bt_open_handout.pack(pady=10)
 
         # Botones
         btn_frame = Frame(self.container, bg=COLOR_BG)
@@ -159,13 +171,17 @@ class App:
         self.timer_lbl = tk.Label(self.container, text="00:00", bg=COLOR_BG, fg="green")
         self.timer_lbl.pack()
 
+    def open_handout(self):
+        if os.path.exists(HANDOUT_PATH):
+            os.startfile(HANDOUT_PATH)
+
     def _add_entry(self, label_text):
         frame = Frame(self.container, bg=COLOR_BG)
         frame.pack(pady=5)
         tk.Label(frame, text=label_text, bg=COLOR_BG).pack(side="left", padx=10)
         entry = tk.Entry(frame, width=40, relief="solid", bd=1)
         entry.pack(side="left")
-        setattr(self, f"e{label_text.split()[0].lower()}", entry)
+        return entry
 
     def _add_text(self, label_text):
         frame = Frame(self.container, bg=COLOR_BG)
@@ -242,6 +258,7 @@ class App:
 
     def on_frame_configure(self, event):
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        self.canvas.yview_moveto(0)
 
     def on_canvas_configure(self, event):
         canvas_width = event.width
