@@ -4,7 +4,7 @@ import wave
 import threading
 import tkinter as tk
 from tkinter import messagebox, simpledialog, Canvas, Frame, Scrollbar
-from PIL import Image, ImageTk, ImageOps
+from PIL import Image, ImageTk
 import io
 import json
 import requests
@@ -22,9 +22,9 @@ SAMPLE_RATE = 44100
 CHANNELS = 1
 
 COLOR_BG = "#FFFFFF"
-COLOR_PRIMARY = "#A9E5BB"
-COLOR_SECONDARY = "#89DCEB"
-COLOR_ACCENT = "#1E90FF"
+COLOR_PRIMARY = "#A9E5BB"       # verde menta
+COLOR_SECONDARY = "#89DCEB"     # azul turquesa claro
+COLOR_ACCENT = "#1E90FF"        # azul vivo
 COLOR_TEXT = "#333333"
 COLOR_MUTED = "#777777"
 
@@ -118,7 +118,7 @@ class App:
         self.timer = None
 
     def build_ui(self):
-        # Cabecera con logo
+        # Cabecera con logo y textos
         header = Frame(self.container, bg=COLOR_BG)
         header.pack(pady=10)
 
@@ -139,25 +139,31 @@ class App:
         tk.Label(text_frame, text="ROLEFY", font=("Jost", 20, "bold"), bg=COLOR_BG, fg=COLOR_PRIMARY).pack(anchor="w")
         tk.Label(text_frame, text="Teacher: María Dolores Rivas Sánchez", font=("Lexend", 10), bg=COLOR_BG, fg=COLOR_MUTED).pack(anchor="w")
 
-        # Entradas
+        # Entradas Buyer y Seller
         self.ebuyer = self._add_entry("Buyer:")
         self.eseller = self._add_entry("Seller:")
+
+        # Textos Items y Costs
         self._add_text("Items (1 per line):")
         self._add_text("Costs (same count):")
 
-        # Handout
+        # Handout (imagen preview proporcional)
         if os.path.exists(HANDOUT_PATH):
             try:
-                handout_img = Image.open(HANDOUT_PATH).resize((500, 350), Image.Resampling.LANCZOS)
+                handout_img = Image.open(HANDOUT_PATH)
+                handout_img.thumbnail((500, 9999), Image.Resampling.LANCZOS)  # ancho máximo 500px, altura proporcional
                 self.handout_tk = ImageTk.PhotoImage(handout_img)
-                tk.Label(self.container, image=self.handout_tk, bg=COLOR_BG).pack(pady=10)
+                handout_lbl = tk.Label(self.container, image=self.handout_tk, bg=COLOR_BG)
+                handout_lbl.pack(pady=10)
             except:
                 pass
 
-        self.bt_open_handout = tk.Button(self.container, text="Open Handout", command=self.open_handout, bg=COLOR_ACCENT, fg="white", relief="flat")
+        # Botón Open Handout
+        self.bt_open_handout = tk.Button(self.container, text="Open Handout", command=self.open_handout,
+                                         bg=COLOR_ACCENT, fg="white", relief="flat")
         self.bt_open_handout.pack(pady=10)
 
-        # Botones
+        # Botones Start, Stop, Submit
         btn_frame = Frame(self.container, bg=COLOR_BG)
         btn_frame.pack(pady=15)
         self.bt_start = self._styled_button("Start Recording", COLOR_PRIMARY, self.start_recording, btn_frame)
@@ -166,10 +172,16 @@ class App:
         self.bt_stop["state"] = "disabled"
         self.bt_submit["state"] = "disabled"
 
+        # Etiquetas estado y temporizador
         self.status_lbl = tk.Label(self.container, text="Ready", bg=COLOR_BG, fg=COLOR_TEXT)
         self.status_lbl.pack()
         self.timer_lbl = tk.Label(self.container, text="00:00", bg=COLOR_BG, fg="green")
         self.timer_lbl.pack()
+
+        # Pie de página copyright restaurado
+        tk.Label(self.container,
+                 text="© All rights reserved. App created by María Dolores Rivas Sánchez",
+                 font=("Lexend", 9), bg=COLOR_BG, fg=COLOR_MUTED).pack(pady=20)
 
     def open_handout(self):
         if os.path.exists(HANDOUT_PATH):
@@ -258,7 +270,9 @@ class App:
 
     def on_frame_configure(self, event):
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
-        self.canvas.yview_moveto(0)
+        # Limitar scroll superior para que no sobrepase cabecera
+        if self.canvas.yview()[0] < 0:
+            self.canvas.yview_moveto(0)
 
     def on_canvas_configure(self, event):
         canvas_width = event.width
