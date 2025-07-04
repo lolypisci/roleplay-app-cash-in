@@ -1,8 +1,10 @@
+### ARCHIVO 1: main.py
+
 import os
 import json
 import uuid
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends, Request
-from fastapi.responses import JSONResponse, FileResponse, RedirectResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
@@ -27,7 +29,7 @@ def get_db():
 async def upload_roleplay(
     comprador: str = Form(...),
     vendedor: str = Form(...),
-    productos: str = Form(...),
+    items: str = Form(...),
     costes: str = Form(...),
     audio: UploadFile = File(...),
     db: Session = Depends(get_db)
@@ -45,7 +47,7 @@ async def upload_roleplay(
     rp = models.Roleplay(
         comprador=comprador,
         vendedor=vendedor,
-        productos=productos,
+        productos=items,
         costes=costes,
         audio_filename=filename
     )
@@ -124,19 +126,6 @@ def list_uploads():
             })
     files.sort(key=lambda x: x["timestamp"], reverse=True)
     return JSONResponse(content=files)
-
-# Opcional: Endpoint para backup (comenta o elimina si no lo tienes implementado)
-@app.get("/backup")
-def create_backup():
-    # Aquí deberías poner la lógica para crear el backup de la base de datos o archivos
-    # Por ahora, solo devuelve un mensaje para que no de error
-    return JSONResponse({"status": "backup not implemented"})
-
-# Opcional: Endpoint para reiniciar Railway (comenta o elimina si no lo tienes implementado)
-@app.post("/restart_railway")
-def restart_railway():
-    # Aquí la lógica para reiniciar Railway, si la tienes implementada
-    return JSONResponse({"status": "restart not implemented"})
 
 @app.get("/")
 async def serve_index():

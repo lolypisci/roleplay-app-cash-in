@@ -24,8 +24,9 @@ def main():
     else:
         backend_process = subprocess.Popen(['python3', backend_script])
 
-    time.sleep(3)  # Esperar backend inicie
+    time.sleep(3)  # Esperar a que el backend inicie
 
+    # Abrir la app en navegador apuntando al backend local
     webbrowser.open('http://127.0.0.1:8000')
 
     try:
