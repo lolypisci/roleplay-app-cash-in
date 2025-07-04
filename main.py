@@ -1,8 +1,7 @@
-# main.py
-
 import os
 import json
 import uuid
+import traceback
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends, Request
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -90,19 +89,27 @@ def list_roleplays(db: Session = Depends(get_db)):
 
 @app.post("/update_feedback")
 async def update_feedback(request: Request, db: Session = Depends(get_db)):
-    data = await request.json()
-    roleplay_id = data.get("id")
-    feedback = data.get("feedback", None)
-    nota = data.get("nota", None)
-    rp = db.query(models.Roleplay).filter(models.Roleplay.id == roleplay_id).first()
-    if rp:
-        if feedback is not None:
-            rp.feedback = feedback
-        if nota is not None:
-            rp.nota = nota
-        db.commit()
-        return {"status": "ok"}
-    return {"status": "error", "message": "Roleplay not found"}
+    try:
+        data = await request.json()
+        roleplay_id = data.get("id")
+        feedback = data.get("feedback", None)
+        nota = data.get("nota", None)
+
+        rp = db.query(models.Roleplay).filter(models.Roleplay.id == roleplay_id).first()
+
+        if rp:
+            if feedback is not None:
+                rp.feedback = feedback
+            if nota is not None:
+                rp.nota = nota
+            db.commit()
+            return {"status": "ok"}
+
+        return {"status": "error", "message": "Roleplay not found"}
+
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @app.get("/audio/{filename}")
