@@ -328,21 +328,29 @@ class App:
             return
 
         wav_bytes = encode_wav(self.audio_data)
-        files = {'audio': ('recording.wav', wav_bytes, 'audio/wav')}
+
+        wav_file = io.BytesIO(wav_bytes)
+        wav_file.name = "recording.wav"
+
+        files = {'audio': (wav_file.name, wav_file, 'audio/wav')}
         data = {
             'comprador': buyer,
             'vendedor': seller,
             'productos': json.dumps(items.splitlines()),
             'costes': json.dumps(costs.splitlines())
         }
+
         try:
-            resp = requests.post(f"{BACKEND}/upload", files=files, data=data)
-            resp.raise_for_status()
+            with requests.Session() as session:
+                resp = session.post(f"{BACKEND}/upload", files=files, data=data, timeout=15)
+                resp.raise_for_status()
+
             messagebox.showinfo("Success", "Roleplay uploaded successfully!")
             self.bt_submit["state"] = "disabled"
             self.bt_download["state"] = "normal"
             self._save_draft_clear()
-        except Exception as e:
+
+        except requests.exceptions.RequestException as e:
             messagebox.showerror("Failed to upload roleplay", str(e))
 
     def download_receipt(self):
@@ -432,7 +440,4 @@ class App:
 def main():
     root = tk.Tk()
     app = App(root)
-    root.mainloop()
-
-if __name__ == "__main__":
-    main()
+    root.mainloop
