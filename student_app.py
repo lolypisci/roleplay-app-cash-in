@@ -1,3 +1,5 @@
+# --- student_app.py ---
+
 import sounddevice as sd
 import numpy as np
 import wave
@@ -12,7 +14,6 @@ import os
 from datetime import datetime
 from fpdf import FPDF
 
-# Configuración
 CONFIG_URL = "https://raw.githubusercontent.com/lolypisci/roleplay-app-cash-in/main/config.json"
 DEFAULT_BACKEND = "http://localhost:8000"
 ASSETS_DIR = "assets"
@@ -140,7 +141,6 @@ class App:
                 self.pil_fonts[name] = ImageFont.load_default()
 
     def _build_ui(self):
-        # Header with logo and text
         header = Frame(self.container, bg=COLOR_BG)
         header.pack(pady=10)
 
@@ -150,253 +150,52 @@ class App:
                 logo_img = logo_img.resize((50, 50), Image.Resampling.LANCZOS)
                 self.logo_tk = ImageTk.PhotoImage(logo_img)
                 logo_lbl = tk.Label(header, image=self.logo_tk, bg=COLOR_BG)
-                logo_lbl.pack(side="left", padx=10)
-            except:
-                logo_lbl = tk.Label(header, text="ROLEFY", font=("Arial", 24), bg=COLOR_BG)
-                logo_lbl.pack(side="left")
-
-        text_frame = Frame(header, bg=COLOR_BG)
-        text_frame.pack(side="left", padx=5)
-
-        tk.Label(text_frame, text="ROLEFY", font=("Jost-Bold", 20), bg=COLOR_BG, fg=COLOR_PRIMARY).pack(anchor="w")
-        tk.Label(text_frame, text="Teacher: María Dolores Rivas Sánchez", font=("Lexend", 10), bg=COLOR_BG,
-                 fg=COLOR_MUTED).pack(anchor="w")
-
-        # Buyer entry
-        self.ebuyer = self._add_entry("Buyer:")
-
-        # Seller entry
-        self.eseller = self._add_entry("Seller:")
-
-        # Items and costs text boxes
-        self.titems = self._add_text("Items (1 per line):")
-        self.tcosts = self._add_text("Costs (same count):")
-
-        # Handout preview image with proportional resize
-        self.handout_label = None
-        self.load_handout_preview()
-
-        # Button Open Handout
-        self.bt_open_handout = tk.Button(self.container, text="Open Handout", command=self.open_handout,
-                                        bg=COLOR_SECONDARY, fg=COLOR_TEXT, font=("Lexend-Bold", 12), relief="raised",
-                                        bd=2)
-        self.bt_open_handout.pack(pady=5)
-
-        # Timer label
-        self.lbl_timer = tk.Label(self.container, text="00:00", font=("Lexend-Bold", 24), fg=COLOR_ACCENT, bg=COLOR_BG)
-        self.lbl_timer.pack(pady=5)
-
-        # Start / Stop recording button
-        self.bt_record = tk.Button(self.container, text="Start Recording", command=self.toggle_recording,
-                                   bg=COLOR_PRIMARY, fg=COLOR_TEXT, font=("Lexend-Bold", 14), relief="raised", bd=2)
-        self.bt_record.pack(pady=10)
-
-        # Upload button
-        self.bt_upload = tk.Button(self.container, text="Upload Roleplay", command=self.upload_roleplay,
-                                   bg=COLOR_SECONDARY, fg=COLOR_TEXT, font=("Lexend-Bold", 14), relief="raised", bd=2)
-        self.bt_upload.pack(pady=10)
-
-        # Feedback & note area (hidden until upload)
-        self.feedback_label = tk.Label(self.container, text="Feedback:", bg=COLOR_BG, fg=COLOR_TEXT, font=("Lexend", 12))
-        self.feedback_entry = tk.Text(self.container, height=4, width=40, font=("Lexend", 12))
-
-        self.note_label = tk.Label(self.container, text="Grade:", bg=COLOR_BG, fg=COLOR_TEXT, font=("Lexend", 12))
-        self.note_entry = tk.Text(self.container, height=1, width=10, font=("Lexend", 12))
-
-        # Receipt preview button
-        self.bt_receipt = tk.Button(self.container, text="Generate Receipt", command=self.generate_receipt,
-                                    bg=COLOR_SECONDARY, fg=COLOR_TEXT, font=("Lexend-Bold", 14), relief="raised", bd=2)
-        self.bt_receipt.pack(pady=10)
-        self.bt_receipt.config(state="disabled")
-
-    def _add_entry(self, label_text):
-        frame = tk.Frame(self.container, bg=COLOR_BG)
-        frame.pack(pady=5, fill="x", padx=10)
-        label = tk.Label(frame, text=label_text, bg=COLOR_BG, fg=COLOR_TEXT, font=("Lexend", 12))
-        label.pack(side="left", padx=(0, 5))
-        entry = tk.Entry(frame, font=("Lexend", 12), width=40)
-        entry.pack(side="left", fill="x", expand=True)
-        return entry
-
-    def _add_text(self, label_text):
-        frame = tk.Frame(self.container, bg=COLOR_BG)
-        frame.pack(pady=5, fill="both", expand=False, padx=10)
-        label = tk.Label(frame, text=label_text, bg=COLOR_BG, fg=COLOR_TEXT, font=("Lexend", 12))
-        label.pack(anchor="w")
-        text = tk.Text(frame, height=5, font=("Lexend", 12))
-        text.pack(fill="both", expand=True)
-        return text
-
-    def load_handout_preview(self):
-        if os.path.exists(HANDOUT_PATH):
-            try:
-                hand_img = Image.open(HANDOUT_PATH)
-                max_w, max_h = 600, 300
-                w, h = hand_img.size
-                ratio = min(max_w / w, max_h / h)
-                hand_img = hand_img.resize((int(w * ratio), int(h * ratio)), Image.Resampling.LANCZOS)
-                self.handout_imgtk = ImageTk.PhotoImage(hand_img)
-                if self.handout_label:
-                    self.handout_label.configure(image=self.handout_imgtk)
-                else:
-                    self.handout_label = tk.Label(self.container, image=self.handout_imgtk, bg=COLOR_BG)
-                    self.handout_label.pack(pady=5)
-            except Exception as e:
-                print(f"Error loading handout image: {e}")
-
-    def open_handout(self):
-        if os.path.exists(HANDOUT_PATH):
-            os.startfile(HANDOUT_PATH) if os.name == "nt" else os.system(f'xdg-open "{HANDOUT_PATH}"')
-        else:
-            messagebox.showwarning("Handout", "Handout image not found.")
-
-    def toggle_recording(self):
-        if not self.recorder.recording:
-            # Start recording
-            buyer = self.ebuyer.get().strip()
-            seller = self.eseller.get().strip()
-            if not buyer or not seller:
-                messagebox.showerror("Missing Data", "Please enter Buyer and Seller names before recording.")
-                return
-            self.recorder.start()
-            self.bt_record.config(text="Stop Recording", bg="#FF6B6B")
-            self.seconds = 0
-            self._update_timer()
-        else:
-            # Stop recording
-            self.audio_data = self.recorder.stop()
-            self.bt_record.config(text="Start Recording", bg=COLOR_PRIMARY)
-            if self.timer:
-                self.root.after_cancel(self.timer)
-            self.lbl_timer.config(text="00:00")
-
-    def _update_timer(self):
-        mins = self.seconds // 60
-        secs = self.seconds % 60
-        self.lbl_timer.config(text=f"{mins:02d}:{secs:02d}")
-        if self.recorder.recording:
-            self.seconds += 1
-            self.timer = self.root.after(1000, self._update_timer)
-
-    def upload_roleplay(self):
-        if self.recorder.recording:
-            messagebox.showerror("Recording", "Please stop recording before uploading.")
-            return
-        if not self.audio_data.any():
-            messagebox.showerror("No audio", "No audio recorded to upload.")
-            return
-        comprador = self.ebuyer.get().strip()
-        vendedor = self.eseller.get().strip()
-        productos = self.titems.get("1.0", "end").strip().splitlines()
-        costes = self.tcosts.get("1.0", "end").strip().splitlines()
-
-        if not comprador or not vendedor:
-            messagebox.showerror("Missing Data", "Buyer and Seller names are required.")
-            return
-        if len(productos) != len(costes):
-            messagebox.showerror("Data mismatch", "Number of items and costs must match.")
-            return
-
-        productos_json = json.dumps(productos)
-        costes_json = json.dumps(costes)
-
-        audio_bytes = encode_wav(self.audio_data)
-
-        files = {
-            "audio": ("roleplay.wav", audio_bytes, "audio/wav")
-        }
-        data = {
-            "comprador": comprador,
-            "vendedor": vendedor,
-            "productos": productos_json,
-            "costes": costes_json
-        }
-
-        try:
-            resp = requests.post(f"{BACKEND}/upload", data=data, files=files)
-            resp.raise_for_status()
-            result = resp.json()
-            if result.get("status") == "ok":
-                messagebox.showinfo("Upload", "Roleplay uploaded successfully!")
-                self._save_draft(clear=True)
-                self.bt_receipt.config(state="normal")
-            else:
-                messagebox.showerror("Upload error", f"Server error: {result.get('message', 'Unknown error')}")
-        except Exception as e:
-            messagebox.showerror("Upload error", f"Failed to upload roleplay:\n{e}")
-
-    def generate_receipt(self):
-        comprador = self.ebuyer.get().strip()
-        vendedor = self.eseller.get().strip()
-        productos = self.titems.get("1.0", "end").strip().splitlines()
-        costes = self.tcosts.get("1.0", "end").strip().splitlines()
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        # Crear PDF recibo simple con FPDF
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial", "B", 16)
-        pdf.cell(0, 10, "ROLEFY - Recibo de compra", ln=True, align="C")
-        pdf.set_font("Arial", "", 12)
-        pdf.cell(0, 10, f"Comprador: {comprador}", ln=True)
-        pdf.cell(0, 10, f"Vendedor: {vendedor}", ln=True)
-        pdf.cell(0, 10, f"Fecha: {now}", ln=True)
-        pdf.ln(10)
-        pdf.set_font("Arial", "B", 12)
-        pdf.cell(100, 10, "Producto")
-        pdf.cell(40, 10, "Precio", ln=True)
-        pdf.set_font("Arial", "", 12)
-        total = 0.0
-        for prod, cost in zip(productos, costes):
-            pdf.cell(100, 10, prod)
-            pdf.cell(40, 10, cost, ln=True)
-            try:
-                total += float(cost.replace(",", "."))
-            except:
-                pass
-        pdf.ln(10)
-        pdf.set_font("Arial", "B", 12)
-        pdf.cell(100, 10, "Total")
-        pdf.cell(40, 10, f"{total:.2f}", ln=True)
-
-        # Guardar PDF
-        save_path = filedialog.asksaveasfilename(
-            defaultextension=".pdf",
-            filetypes=[("PDF files", "*.pdf")],
-            title="Save Receipt"
-        )
-        if save_path:
-            pdf.output(save_path)
-            messagebox.showinfo("Receipt", f"Receipt saved to:\n{save_path}")
-
-    def _save_draft(self, clear=False):
-        # Guardar datos en un archivo local para recuperación (por ejemplo draft.json)
-        draft_path = "draft.json"
-        if clear:
-            if os.path.exists(draft_path):
-                os.remove(draft_path)
-            return
-        data = {
-            "comprador": self.ebuyer.get(),
-            "vendedor": self.eseller.get(),
-            "productos": self.titems.get("1.0", "end"),
-            "costes": self.tcosts.get("1.0", "end"),
-        }
-        with open(draft_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False)
-
-    def _load_draft(self):
-        draft_path = "draft.json"
-        if os.path.exists(draft_path):
-            try:
-                with open(draft_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                self.ebuyer.insert(0, data.get("comprador", ""))
-                self.eseller.insert(0, data.get("vendedor", ""))
-                self.titems.insert("1.0", data.get("productos", ""))
-                self.tcosts.insert("1.0", data.get("costes", ""))
+                logo_lbl.pack(side="left", padx=5)
             except Exception:
                 pass
+
+        title_lbl = tk.Label(header, text="ROLEFY", font=("Lexend-Bold", 36, "bold"), fg=COLOR_ACCENT, bg=COLOR_BG)
+        title_lbl.pack(side="left", padx=10)
+
+        subtitle_lbl = tk.Label(header, text="Student Roleplay Recorder", font=("Lexend", 14), fg=COLOR_MUTED, bg=COLOR_BG)
+        subtitle_lbl.pack(side="left")
+
+        # Form entries for comprador, vendedor, productos, costes
+        form_frame = Frame(self.container, bg=COLOR_BG)
+        form_frame.pack(pady=10, fill="x", padx=20)
+
+        tk.Label(form_frame, text="Buyer Name:", font=("Lexend", 12), bg=COLOR_BG).grid(row=0, column=0, sticky="w")
+        self.entry_comprador = tk.Entry(form_frame, font=("Lexend", 12))
+        self.entry_comprador.grid(row=0, column=1, sticky="ew")
+
+        tk.Label(form_frame, text="Seller Name:", font=("Lexend", 12), bg=COLOR_BG).grid(row=1, column=0, sticky="w")
+        self.entry_vendedor = tk.Entry(form_frame, font=("Lexend", 12))
+        self.entry_vendedor.grid(row=1, column=1, sticky="ew")
+
+        tk.Label(form_frame, text="Items (one per line):", font=("Lexend", 12), bg=COLOR_BG).grid(row=2, column=0, sticky="nw")
+        self.text_items = tk.Text(form_frame, height=5, font=("Lexend", 12))
+        self.text_items.grid(row=2, column=1, sticky="ew")
+
+        tk.Label(form_frame, text="Costs (one per line):", font=("Lexend", 12), bg=COLOR_BG).grid(row=3, column=0, sticky="nw")
+        self.text_costs = tk.Text(form_frame, height=5, font=("Lexend", 12))
+        self.text_costs.grid(row=3, column=1, sticky="ew")
+
+        form_frame.columnconfigure(1, weight=1)
+
+        # Record button and timer label
+        self.btn_record = tk.Button(self.container, text="Start Recording", font=("Lexend-Bold", 14, "bold"), bg=COLOR_PRIMARY, command=self.toggle_recording)
+        self.btn_record.pack(pady=10)
+
+        self.lbl_timer = tk.Label(self.container, text="00:00", font=("Lexend-Bold", 14), fg=COLOR_ACCENT, bg=COLOR_BG)
+        self.lbl_timer.pack()
+
+        # Upload button
+        self.btn_upload = tk.Button(self.container, text="Upload Roleplay", font=("Lexend-Bold", 14, "bold"), bg=COLOR_SECONDARY, command=self.upload_roleplay)
+        self.btn_upload.pack(pady=10)
+
+        # Status label
+        self.lbl_status = tk.Label(self.container, text="", font=("Lexend", 12), fg=COLOR_MUTED, bg=COLOR_BG)
+        self.lbl_status.pack()
 
     def on_frame_configure(self, event):
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
@@ -406,6 +205,105 @@ class App:
 
     def _on_mousewheel(self, event):
         self.canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+
+    def toggle_recording(self):
+        if self.recorder.recording:
+            self.stop_recording()
+        else:
+            self.start_recording()
+
+    def start_recording(self):
+        self.recorder.start()
+        self.seconds = 0
+        self.update_timer()
+        self.btn_record.config(text="Stop Recording", bg="#FF6666")
+
+    def stop_recording(self):
+        data = self.recorder.stop()
+        if data is not None:
+            self.audio_data = data
+            self.lbl_status.config(text="Recording stopped, ready to upload.")
+        else:
+            self.lbl_status.config(text="Recording failed.")
+        self.btn_record.config(text="Start Recording", bg=COLOR_PRIMARY)
+        self.stop_timer()
+
+    def update_timer(self):
+        self.lbl_timer.config(text=f"{self.seconds//60:02d}:{self.seconds%60:02d}")
+        if self.recorder.recording:
+            self.seconds += 1
+            self.timer = self.root.after(1000, self.update_timer)
+
+    def stop_timer(self):
+        if self.timer:
+            self.root.after_cancel(self.timer)
+            self.timer = None
+
+    def upload_roleplay(self):
+        comprador = self.entry_comprador.get().strip()
+        vendedor = self.entry_vendedor.get().strip()
+        productos_text = self.text_items.get("1.0", "end").strip()
+        costes_text = self.text_costs.get("1.0", "end").strip()
+
+        if not comprador or not vendedor:
+            messagebox.showerror("Error", "Buyer and Seller names are required.")
+            return
+        if not productos_text:
+            messagebox.showerror("Error", "Please enter at least one item.")
+            return
+        if not costes_text:
+            messagebox.showerror("Error", "Please enter costs for items.")
+            return
+        if self.audio_data is None:
+            messagebox.showerror("Error", "No audio recorded.")
+            return
+
+        productos = [line.strip() for line in productos_text.splitlines() if line.strip()]
+        costes = [line.strip() for line in costes_text.splitlines() if line.strip()]
+
+        if len(productos) != len(costes):
+            messagebox.showerror("Error", "Number of items and costs must match.")
+            return
+
+        productos_json = json.dumps(productos)
+        costes_json = json.dumps(costes)
+
+        wav_bytes = encode_wav(self.audio_data)
+        files = {
+            "audio": ("roleplay.wav", wav_bytes, "audio/wav")
+        }
+        data = {
+            "comprador": comprador,
+            "vendedor": vendedor,
+            "productos": productos_json,
+            "costes": costes_json
+        }
+
+        try:
+            self.lbl_status.config(text="Uploading...")
+            response = requests.post(f"{BACKEND}/upload", data=data, files=files)
+            if response.status_code == 200:
+                self.lbl_status.config(text="Upload successful.")
+                messagebox.showinfo("Success", "Roleplay uploaded successfully!")
+                self._reset_form()
+            else:
+                self.lbl_status.config(text=f"Upload failed: {response.status_code} {response.text}")
+                messagebox.showerror("Upload Failed", f"Server error: {response.status_code}")
+        except Exception as e:
+            self.lbl_status.config(text=f"Upload failed: {e}")
+            messagebox.showerror("Upload Failed", f"Error: {e}")
+
+    def _reset_form(self):
+        self.entry_comprador.delete(0, "end")
+        self.entry_vendedor.delete(0, "end")
+        self.text_items.delete("1.0", "end")
+        self.text_costs.delete("1.0", "end")
+        self.audio_data = None
+        self.lbl_timer.config(text="00:00")
+        self.lbl_status.config(text="")
+
+    def _load_draft(self):
+        pass  # Placeholder to implement draft loading if needed
 
 def main():
     root = tk.Tk()

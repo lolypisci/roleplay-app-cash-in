@@ -1,4 +1,4 @@
-### ARCHIVO 1: main.py
+# --- main.py ---
 
 import os
 import json
@@ -29,7 +29,7 @@ def get_db():
 async def upload_roleplay(
     comprador: str = Form(...),
     vendedor: str = Form(...),
-    items: str = Form(...),
+    productos: str = Form(...),
     costes: str = Form(...),
     audio: UploadFile = File(...),
     db: Session = Depends(get_db)
@@ -47,7 +47,7 @@ async def upload_roleplay(
     rp = models.Roleplay(
         comprador=comprador,
         vendedor=vendedor,
-        productos=items,
+        productos=productos,
         costes=costes,
         audio_filename=filename
     )
