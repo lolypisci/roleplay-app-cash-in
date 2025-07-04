@@ -24,10 +24,17 @@ def start_backend():
         if resp.status_code == 200:
             print("Backend ya está corriendo.")
             return
-    except Exception:
-        print("Arrancando backend...")
-        subprocess.Popen(backend_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception as e:
+        print("Arrancando backend...", e)
+        proc = subprocess.Popen(backend_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         time.sleep(3)
+        try:
+            out, err = proc.communicate(timeout=1)
+            print("Backend stdout:", out.decode())
+            print("Backend stderr:", err.decode())
+        except subprocess.TimeoutExpired:
+            print("Backend arrancado correctamente (sin output inmediato)")
+
 # --- END BACKEND FUNCTION ---
 
 CONFIG_URL = "https://raw.githubusercontent.com/lolypisci/roleplay-app-cash-in/main/config.json"
@@ -440,4 +447,7 @@ class App:
 def main():
     root = tk.Tk()
     app = App(root)
-    root.mainloop
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
