@@ -1,4 +1,4 @@
-# --- main.py ---
+# main.py
 
 import os
 import json
@@ -17,6 +17,9 @@ models.Base.metadata.create_all(bind=engine)
 
 # Montar carpeta static para servir logo, iconos, CSS, JS, etc.
 app.mount("/static", StaticFiles(directory="static"), name="static")
+# Montar carpeta uploads para servir audios
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 
 def get_db():
     db = SessionLocal()
@@ -24,6 +27,7 @@ def get_db():
         yield db
     finally:
         db.close()
+
 
 @app.post("/upload")
 async def upload_roleplay(
@@ -56,6 +60,7 @@ async def upload_roleplay(
     db.refresh(rp)
     return JSONResponse({"status": "ok", "id": rp.id})
 
+
 @app.get("/roleplays")
 def list_roleplays(db: Session = Depends(get_db)):
     items = db.query(models.Roleplay).all()
@@ -75,12 +80,13 @@ def list_roleplays(db: Session = Depends(get_db)):
             "vendedor": r.vendedor,
             "productos": productos,
             "costes": costes,
-            "audio_url": f"/audio/{r.audio_filename}",
+            "audio_url": f"/uploads/{r.audio_filename}",
             "timestamp": r.timestamp.isoformat(),
             "feedback": r.feedback or "",
             "nota": r.nota or ""
         })
     return out
+
 
 @app.post("/update_feedback")
 async def update_feedback(request: Request, db: Session = Depends(get_db)):
@@ -98,6 +104,7 @@ async def update_feedback(request: Request, db: Session = Depends(get_db)):
         return {"status": "ok"}
     return {"status": "error", "message": "Roleplay not found"}
 
+
 @app.get("/audio/{filename}")
 async def get_audio(filename: str):
     path = os.path.join("uploads", filename)
@@ -110,6 +117,7 @@ async def get_audio(filename: str):
         ".mp3": "audio/mpeg"
     }.get(ext, "application/octet-stream")
     return FileResponse(path, media_type=media)
+
 
 @app.get("/uploads")
 def list_uploads():
@@ -127,9 +135,11 @@ def list_uploads():
     files.sort(key=lambda x: x["timestamp"], reverse=True)
     return JSONResponse(content=files)
 
+
 @app.get("/")
 async def serve_index():
     return FileResponse("static/index.html")
+
 
 if __name__ == "__main__":
     import uvicorn
