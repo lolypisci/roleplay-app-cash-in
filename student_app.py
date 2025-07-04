@@ -1,5 +1,3 @@
-# student_app.py
-
 import sounddevice as sd
 import numpy as np
 import wave
@@ -48,6 +46,7 @@ def get_backend_url():
         if not url:
             exit("No backend provided")
         return url.rstrip("/")
+
 
 BACKEND = get_backend_url()
 
@@ -136,7 +135,6 @@ class App:
         self._build_ui()
         self._load_draft()
 
-
     def load_fonts_for_pil(self):
         # Try loading fonts for PIL drawing (used in PDF/recibo generation)
         self.pil_fonts = {}
@@ -147,7 +145,6 @@ class App:
                 self.pil_fonts[name + "_big"] = ImageFont.truetype(path, 24)
             except Exception:
                 self.pil_fonts[name] = ImageFont.load_default()
-
 
     def _build_ui(self):
         # Header with logo and text
@@ -322,45 +319,45 @@ class App:
             self.root.after(1000, self.update_timer)
 
     def submit(self):
-    buyer = self.ebuyer.get().strip()
-    seller = self.eseller.get().strip()
-    items = self.titems.get("1.0", "end").strip()
-    costs = self.tcosts.get("1.0", "end").strip()
+        buyer = self.ebuyer.get().strip()
+        seller = self.eseller.get().strip()
+        items = self.titems.get("1.0", "end").strip()
+        costs = self.tcosts.get("1.0", "end").strip()
 
         if not buyer or not seller:
-        messagebox.showwarning("Warning", "Buyer and Seller names are required.")
-        return
+            messagebox.showwarning("Warning", "Buyer and Seller names are required.")
+            return
         if not items:
-        messagebox.showwarning("Warning", "Please enter at least one item.")
-        return
+            messagebox.showwarning("Warning", "Please enter at least one item.")
+            return
         if not costs:
-        messagebox.showwarning("Warning", "Please enter costs.")
-        return
+            messagebox.showwarning("Warning", "Please enter costs.")
+            return
         if self.audio_data is None or self.audio_data.size == 0:
-        messagebox.showwarning("Warning", "Please record audio before submitting.")
-        return
+            messagebox.showwarning("Warning", "Please record audio before submitting.")
+            return
 
-    # Prepare audio data in wav format bytes
-    wav_bytes = encode_wav(self.audio_data)
+        # Prepare audio data in wav format bytes
+        wav_bytes = encode_wav(self.audio_data)
 
-    # Prepare multipart form data
-    files = {'audio': ('recording.wav', wav_bytes, 'audio/wav')}
-    data = {
-        'comprador': buyer,
-        'vendedor': seller,
-        'productos': json.dumps(items.splitlines()),
-        'costes': json.dumps(costs.splitlines())
-    }
+        # Prepare multipart form data
+        files = {'audio': ('recording.wav', wav_bytes, 'audio/wav')}
+        data = {
+            'comprador': buyer,
+            'vendedor': seller,
+            'productos': json.dumps(items.splitlines()),
+            'costes': json.dumps(costs.splitlines())
+        }
 
         try:
-        resp = requests.post(f"{BACKEND}/upload", files=files, data=data)
-        resp.raise_for_status()
-        messagebox.showinfo("Success", "Roleplay uploaded successfully!")
-        self.bt_submit["state"] = "disabled"
-        self.bt_download["state"] = "normal"
-        self._save_draft_clear()
+            resp = requests.post(f"{BACKEND}/upload", files=files, data=data)
+            resp.raise_for_status()
+            messagebox.showinfo("Success", "Roleplay uploaded successfully!")
+            self.bt_submit["state"] = "disabled"
+            self.bt_download["state"] = "normal"
+            self._save_draft_clear()
         except Exception as e:
-        messagebox.showerror("Failed to upload roleplay", str(e))
+            messagebox.showerror("Failed to upload roleplay", str(e))
 
     def download_receipt(self):
         buyer = self.ebuyer.get().strip()
@@ -451,6 +448,7 @@ def main():
     root = tk.Tk()
     app = App(root)
     root.mainloop()
+
 
 if __name__ == "__main__":
     main()
