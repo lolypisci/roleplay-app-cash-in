@@ -11,6 +11,7 @@ import io
 import json
 import requests
 import os
+import time
 from datetime import datetime
 from fpdf import FPDF
 
@@ -273,8 +274,10 @@ class App:
                 if os.name == 'nt':
                     os.startfile(HANDOUT_PATH)
                 elif sys.platform == 'darwin':
+                    import subprocess
                     subprocess.call(('open', HANDOUT_PATH))
                 else:
+                    import subprocess
                     subprocess.call(('xdg-open', HANDOUT_PATH))
             except Exception as e:
                 messagebox.showerror("Error", f"No se pudo abrir el handout:\n{e}")
@@ -291,7 +294,7 @@ class App:
         self.bt_download["state"] = "disabled"
 
         self.seconds = 0
-        self.update_timer()
+        self.update_timer()  # <-- esto hace que el temporizador avance cada segundo
 
         threading.Thread(target=self._record_thread, daemon=True).start()
 
@@ -299,7 +302,6 @@ class App:
         self.recorder.start()
         while self.recorder.recording:
             time.sleep(0.1)
-
         self.audio_data = self.recorder.stop()
 
     def stop_recording(self):
